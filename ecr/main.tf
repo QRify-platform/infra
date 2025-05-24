@@ -20,13 +20,13 @@ resource "aws_ecr_lifecycle_policy" "qrify" {
   policy = jsonencode({
     rules = [
       {
-        rulePriority = 1,
-        description  = "Retain last 10 images",
+        rulePriority = 1
+        description  = "Retain last 10 images"
         selection = {
-          tagStatus     = "any",
-          countType     = "imageCountMoreThan",
+          tagStatus     = "any"
+          countType     = "imageCountMoreThan"
           countNumber   = 10
-        },
+        }
         action = {
           type = "expire"
         }
