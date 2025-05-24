@@ -1,9 +1,6 @@
 name: Terraform Apply
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
 
 permissions:
@@ -18,7 +15,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Configure AWS credentials
+      - name: Configure AWS credentials from OIDC
         uses: aws-actions/configure-aws-credentials@v2
         with:
           role-to-assume: arn:aws:iam::125896621773:role/qrify-github-actions-role
@@ -26,6 +23,15 @@ jobs:
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.7
+
+      - name: Try to download existing Terraform state
+        uses: actions/download-artifact@v3
+        continue-on-error: true
+        with:
+          name: tfstate
+          path: .
 
       - name: Terraform Init
         run: terraform init
