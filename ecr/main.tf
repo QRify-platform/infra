@@ -10,6 +10,8 @@ resource "aws_ecr_repository" "qrify" {
   encryption_configuration {
     encryption_type = "AES256"
   }
+
+  force_delete = true
 }
 
 resource "aws_ecr_lifecycle_policy" "qrify" {
