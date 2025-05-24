@@ -1,7 +1,6 @@
 name: Terraform Apply
 
 on:
-  push:
   workflow_dispatch:
 
 permissions:
