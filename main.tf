@@ -8,3 +8,14 @@ module "qrify_ecr" {
     "qrify-web-api-prod"
   ]
 }
+
+
+module "qrify_s3" {
+  source = "./s3"
+  bucket_name = "qrify-platform-storage"
+}
+
+module "qrify_iam" {
+  source = "./iam"
+  s3_bucket_arn = module.qrify_s3.bucket_arn
+}
