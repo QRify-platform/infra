@@ -14,3 +14,12 @@ module "qrify_s3" {
   source = "./s3"
   bucket_name = "qrify-platform-storage"
 }
+
+module "eks" {
+  source = "./eks"
+
+}
+
+module "argocd" {
+  source = "./argocd"
+}
