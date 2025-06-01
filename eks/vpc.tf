@@ -1,3 +1,30 @@
+locals {
+  azs = slice(data.aws_availability_zones.available.names, 0, 2)
+
+  public_subnet_config = {
+    "public-a" = {
+      cidr = "10.0.1.0/24"
+      az   = local.azs[0]
+    }
+    "public-b" = {
+      cidr = "10.0.2.0/24"
+      az   = local.azs[1]
+    }
+  }
+
+  private_subnet_config = {
+    "private-a" = {
+      cidr = "10.0.10.0/24"
+      az   = local.azs[0]
+    }
+    "private-b" = {
+      cidr = "10.0.11.0/24"
+      az   = local.azs[1]
+    }
+  }
+}
+
+
 resource "aws_vpc" "main" {
   cidr_block           = "10.0.0.0/16"
   enable_dns_support   = true
@@ -22,7 +49,7 @@ resource "aws_eip" "nat" {
 
 resource "aws_nat_gateway" "nat" {
   allocation_id = aws_eip.nat.id
-  subnet_id = aws_subnet.public[0].id
+  subnet_id     = aws_subnet.public["public-a"].id
 
   tags = {
     Name = "qrify-nat"
@@ -31,32 +58,41 @@ resource "aws_nat_gateway" "nat" {
   depends_on = [aws_internet_gateway.igw]
 }
 
+
 resource "aws_subnet" "public" {
-  count                   = 2
+  for_each = local.public_subnet_config
+
   vpc_id                  = aws_vpc.main.id
-  cidr_block              = cidrsubnet("10.0.0.0/16", 8, count.index)
-  availability_zone       = data.aws_availability_zones.available.names[count.index]
+  cidr_block              = each.value.cidr
+  availability_zone       = each.value.az
   map_public_ip_on_launch = true
 
   tags = {
-    Name                     = "qrify-public-${count.index}"
-    "kubernetes.io/role/elb" = "1"
+    Name                              = "qrify-${each.key}"
+    "kubernetes.io/role/elb"          = "1"
+    "kubernetes.io/cluster/qrify-eks" = "owned"
   }
 }
+
+
+
 
 resource "aws_subnet" "private" {
-  count             = 2
+  for_each = local.private_subnet_config
+
   vpc_id            = aws_vpc.main.id
-  cidr_block        = cidrsubnet("10.0.0.0/16", 8, count.index + 10)
-  availability_zone = data.aws_availability_zones.available.names[count.index]
+  cidr_block        = each.value.cidr
+  availability_zone = each.value.az
 
   tags = {
-    Name                              = "qrify-private-${count.index}"
-    "kubernetes.io/role/internal-elb" = "1"
+    Name                                  = "qrify-${each.key}"
+    "kubernetes.io/role/internal-elb"     = "1"
+    "kubernetes.io/cluster/qrify-eks"     = "owned"
   }
 }
 
 
+# Route table for public subnets
 resource "aws_route_table" "public" {
   vpc_id = aws_vpc.main.id
 
@@ -70,12 +106,14 @@ resource "aws_route_table" "public" {
   }
 }
 
+# Route table associations for public subnets
 resource "aws_route_table_association" "public" {
-  count          = 2
-  subnet_id      = aws_subnet.public[count.index].id
+  for_each       = aws_subnet.public
+  subnet_id      = each.value.id
   route_table_id = aws_route_table.public.id
 }
 
+# Route table for private subnets (uses NAT gateway)
 resource "aws_route_table" "private" {
   vpc_id = aws_vpc.main.id
 
@@ -89,8 +127,9 @@ resource "aws_route_table" "private" {
   }
 }
 
+# Route table associations for private subnets
 resource "aws_route_table_association" "private" {
-  count          = 2
-  subnet_id      = aws_subnet.private[count.index].id
+  for_each       = aws_subnet.private
+  subnet_id      = each.value.id
   route_table_id = aws_route_table.private.id
 }
