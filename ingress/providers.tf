@@ -1,13 +1,16 @@
 terraform {
   required_providers {
-    aws = {
-      source = "hashicorp/aws"
+    helm = {
+      source = "hashicorp/helm"
     }
     kubernetes = {
       source = "hashicorp/kubernetes"
     }
-    helm = {
-      source = "hashicorp/helm"
-    }
+  }
+}
+
+provider "helm" {
+  kubernetes {
+    config_path = "~/.kube/config" # or your kubeconfig location
   }
 }

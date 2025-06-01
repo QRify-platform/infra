@@ -25,18 +25,10 @@ module "argocd" {
   source = "./argocd"
 }
 
-module "ingress" {
-  source = "./ingress"
-
-  cluster_name      = module.eks.cluster_name
-  region            = "us-east-2"
-  vpc_id            = module.eks.vpc_id
-  oidc_provider_arn = module.eks.oidc_provider_arn
-
-  providers = {
-    kubernetes = kubernetes
-    helm       = helm
-    aws        = aws
-  }
+module "nginx_ingress" {
+  source                = "./ingress"
+  namespace             = "kube-system"
+  ingress_chart_version = "4.10.0"
+  oidc_provider_arn     = module.eks.oidc_provider_arn
+  cluster_name          = module.eks.cluster_name
 }
-
