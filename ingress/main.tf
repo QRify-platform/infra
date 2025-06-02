@@ -45,14 +45,32 @@ resource "helm_release" "nginx_ingress" {
 
 
 
-data "kubernetes_service" "nginx_ingress_lb" {
-  metadata {
-    name      = "nginx-ingress-controller"
-    namespace = var.namespace
-  }
-
-  depends_on = [null_resource.wait_for_nginx_ingress_lb]
+data "aws_route53_zone" "main" {
+  name         = "qrify-web.com"
+  private_zone = false
 }
 
+
+
+
+data "kubernetes_service" "nginx_ingress_lb" {
+  metadata {
+    name      = "nginx-ingress-controller-ingress-nginx-controller"
+    namespace = "kube-system" 
+  }
+}
+
+
+resource "aws_route53_record" "nginx_alias" {
+  zone_id = data.aws_route53_zone.main.zone_id
+  name    = "qrify-web.com"
+  type    = "A"
+
+  alias {
+    name                   = data.kubernetes_service.nginx_ingress_lb.status[0].load_balancer[0].ingress[0].hostname
+    zone_id                = "Z3AADJGX6KTTL2" # ALB zone ID for us-east-2
+    evaluate_target_health = true
+  }
+}
 
 
