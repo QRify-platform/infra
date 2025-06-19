@@ -25,11 +25,12 @@ resource "null_resource" "wait_for_nginx_ingress_lb" {
 
 resource "helm_release" "nginx_ingress" {
   name       = "nginx-ingress-controller"
-  namespace  = "kube-system"
+  namespace  = "ingress-nginx"
   repository = "https://kubernetes.github.io/ingress-nginx"
   chart      = "ingress-nginx"
-  version    = "4.10.0" # or latest stable
+  version    = "4.10.0"
 
+  create_namespace = true
   set {
     name  = "controller.service.type"
     value = "LoadBalancer"
@@ -56,8 +57,10 @@ data "aws_route53_zone" "main" {
 data "kubernetes_service" "nginx_ingress_lb" {
   metadata {
     name      = "nginx-ingress-controller-ingress-nginx-controller"
-    namespace = "kube-system" 
+    namespace = "ingress-nginx" 
   }
+
+  depends_on = [null_resource.wait_for_nginx_ingress_lb]
 }
 
 
@@ -68,9 +71,9 @@ resource "aws_route53_record" "nginx_alias" {
 
   alias {
     name                   = data.kubernetes_service.nginx_ingress_lb.status[0].load_balancer[0].ingress[0].hostname
-    zone_id                = "Z3AADJGX6KTTL2" # ALB zone ID for us-east-2
+    zone_id                = "Z3AADJGX6KTTL2" 
     evaluate_target_health = true
   }
+  
 }
-
 
