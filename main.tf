@@ -2,7 +2,7 @@
 
 
 module "qrify_ecr" {
-  source = "./ecr"
+  source = "./modules/ecr"
 
   repository_names = [
     "qrify-web-dev",
@@ -14,16 +14,16 @@ module "qrify_ecr" {
 
 
 module "qrify_s3" {
-  source = "./s3"
-  bucket_name = "qrify-platform-storage"
+  source = "./modules/s3"
+  bucket_name = "qrify-web-platform-storage"
 }
 
 module "eks" {
-  source = "./eks"
+  source = "./modules/eks"
 }
 
 module "argocd" {
-  source = "./argocd"
+  source = "./modules/argocd"
 
   depends_on = [module.eks]
 
@@ -34,7 +34,7 @@ module "argocd" {
 }
 
 module "nginx_ingress" {
-  source                = "./ingress"
+  source                = "./modules/ingress"
   namespace             = "kube-system"
   ingress_chart_version = "4.10.0"
   oidc_provider_arn     = module.eks.oidc_provider_arn
@@ -49,7 +49,7 @@ module "nginx_ingress" {
 }
 
 module "sealed_secrets" {
-  source = "./bitnami"
+  source = "./modules/bitnami"
   cluster_name = module.eks.cluster_name
 
   depends_on = [module.eks]

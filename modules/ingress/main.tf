@@ -1,3 +1,23 @@
+resource "helm_release" "nginx_ingress" {
+  name             = "nginx-ingress-controller"
+  namespace        = "ingress-nginx"
+  repository       = "https://kubernetes.github.io/ingress-nginx"
+  chart            = "ingress-nginx"
+  version          = "4.10.0"
+  create_namespace = true
+
+  set = [
+    {
+      name  = "controller.service.type"
+      value = "LoadBalancer"
+    },
+    {
+      name  = "controller.publishService.enabled"
+      value = "true"
+    }
+  ]
+}
+
 resource "null_resource" "wait_for_nginx_ingress_lb" {
   provisioner "local-exec" {
     command = <<EOT
@@ -23,33 +43,12 @@ resource "null_resource" "wait_for_nginx_ingress_lb" {
 
 
 
-resource "helm_release" "nginx_ingress" {
-  name       = "nginx-ingress-controller"
-  namespace  = "ingress-nginx"
-  repository = "https://kubernetes.github.io/ingress-nginx"
-  chart      = "ingress-nginx"
-  version    = "4.10.0"
-
-  create_namespace = true
-  set {
-    name  = "controller.service.type"
-    value = "LoadBalancer"
-  }
-
-  set {
-    name  = "controller.publishService.enabled"
-    value = "true"
-  }
-}
 
 
-
-
-
-data "aws_route53_zone" "main" {
-  name         = "qrify-web.com"
-  private_zone = false
-}
+# data "aws_route53_zone" "main" {
+#   name         = "qrify-web.com"
+#   private_zone = false
+# }
 
 
 
@@ -64,16 +63,15 @@ data "kubernetes_service" "nginx_ingress_lb" {
 }
 
 
-resource "aws_route53_record" "nginx_alias" {
-  zone_id = data.aws_route53_zone.main.zone_id
-  name    = "qrify-web.com"
-  type    = "A"
-
-  alias {
-    name                   = data.kubernetes_service.nginx_ingress_lb.status[0].load_balancer[0].ingress[0].hostname
-    zone_id                = "Z3AADJGX6KTTL2" 
-    evaluate_target_health = true
-  }
-  
-}
+# resource "aws_route53_record" "nginx_alias" {
+#   zone_id = data.aws_route53_zone.main.zone_id
+#   name    = "qrify-web.com"
+#   type    = "A"
+#
+#   alias {
+#     name                   = data.kubernetes_service.nginx_ingress_lb.status[0].load_balancer[0].ingress[0].hostname
+#     zone_id                = "Z3AADJGX6KTTL2"
+#     evaluate_target_health = true
+#   }
+# }
 
