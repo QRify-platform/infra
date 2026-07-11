@@ -19,12 +19,13 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v2
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: us-east-1
+          aws-region: us-east-2
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: 1.5.7
+          terraform_wrapper: false
 
       - name: Try to download existing Terraform state
         uses: actions/download-artifact@v4
@@ -36,7 +37,12 @@ jobs:
       - name: Terraform Init
         run: terraform init
 
-      - name: Terraform Apply
+      # Pass 1: cluster must exist before Helm/Kubernetes providers can auth
+      - name: Terraform Apply (EKS)
+        run: terraform apply -target=module.eks -auto-approve
+
+      # Pass 2: Helm charts and remaining resources
+      - name: Terraform Apply (full stack)
         run: terraform apply -auto-approve
 
       - name: Upload Terraform state
