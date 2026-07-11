@@ -21,3 +21,12 @@ variable "github_repository" {
   type        = string
   default     = "infra"
 }
+
+variable "ecr_push_github_repositories" {
+  description = "GitHub repositories that can assume the ECR push role for Docker build/push."
+  type        = list(string)
+  default = [
+    "qrify-web",
+    "qrify-web-api",
+  ]
+}
