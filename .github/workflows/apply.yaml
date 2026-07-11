@@ -1,6 +1,10 @@
 name: Terraform Apply
 
 on:
+  push:
+    branches:
+      - main
+
   workflow_dispatch:
 
 permissions:
@@ -27,13 +31,6 @@ jobs:
           terraform_version: 1.5.7
           terraform_wrapper: false
 
-      - name: Try to download existing Terraform state
-        uses: actions/download-artifact@v4
-        continue-on-error: true
-        with:
-          name: tfstate
-          path: .
-
       - name: Terraform Init
         run: terraform init
 
@@ -44,9 +41,3 @@ jobs:
       # Pass 2: Helm charts and remaining resources
       - name: Terraform Apply (full stack)
         run: terraform apply -auto-approve
-
-      - name: Upload Terraform state
-        uses: actions/upload-artifact@v4
-        with:
-          name: tfstate
-          path: terraform.tfstate
