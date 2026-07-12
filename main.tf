@@ -22,6 +22,18 @@ module "eks" {
   source = "./modules/eks"
 }
 
+module "api_irsa" {
+  source = "./modules/api-irsa"
+
+  oidc_provider_arn  = module.eks.oidc_provider_arn
+  oidc_provider_url  = module.eks.oidc_provider_url
+  s3_bucket_name     = "qrify-web-platform-storage"
+  service_account_name = "qrify-web-api"
+  namespaces         = ["dev", "prod"]
+
+  depends_on = [module.eks, module.qrify_s3]
+}
+
 module "argocd" {
   source = "./modules/argocd"
 
