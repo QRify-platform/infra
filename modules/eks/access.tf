@@ -26,21 +26,11 @@ resource "aws_eks_access_policy_association" "terraform_admin" {
   depends_on = [aws_eks_access_entry.terraform]
 }
 
-# cluster-state CI: kubectl + Argo CD Application CRs (argoproj.io)
+# cluster-state CI: map the role into a Kubernetes group. Permissions come from
+# RBAC in eks_access_rbac.tf (argocd namespace only) — not EKS cluster-admin.
 resource "aws_eks_access_entry" "eks_access" {
-  cluster_name  = aws_eks_cluster.qrify.name
-  principal_arn = data.aws_iam_role.eks_access.arn
-  type          = "STANDARD"
-}
-
-resource "aws_eks_access_policy_association" "eks_access_admin" {
-  cluster_name  = aws_eks_cluster.qrify.name
-  principal_arn = data.aws_iam_role.eks_access.arn
-  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
-
-  access_scope {
-    type = "cluster"
-  }
-
-  depends_on = [aws_eks_access_entry.eks_access]
+  cluster_name      = aws_eks_cluster.qrify.name
+  principal_arn     = data.aws_iam_role.eks_access.arn
+  type              = "STANDARD"
+  kubernetes_groups = ["qrify-eks-access"]
 }
