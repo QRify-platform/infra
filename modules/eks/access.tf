@@ -26,21 +26,20 @@ resource "aws_eks_access_policy_association" "terraform_admin" {
   depends_on = [aws_eks_access_entry.terraform]
 }
 
-# cluster-state CI: kubectl against the argocd namespace (root app + sync helpers)
+# cluster-state CI: kubectl + Argo CD Application CRs (argoproj.io)
 resource "aws_eks_access_entry" "eks_access" {
   cluster_name  = aws_eks_cluster.qrify.name
   principal_arn = data.aws_iam_role.eks_access.arn
   type          = "STANDARD"
 }
 
-resource "aws_eks_access_policy_association" "eks_access_argocd" {
+resource "aws_eks_access_policy_association" "eks_access_admin" {
   cluster_name  = aws_eks_cluster.qrify.name
   principal_arn = data.aws_iam_role.eks_access.arn
-  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSAdminPolicy"
+  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
 
   access_scope {
-    type       = "namespace"
-    namespaces = ["argocd"]
+    type = "cluster"
   }
 
   depends_on = [aws_eks_access_entry.eks_access]
