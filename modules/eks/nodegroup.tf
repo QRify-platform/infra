@@ -27,11 +27,4 @@ resource "aws_eks_node_group" "qrify_nodes" {
     aws_iam_role_policy_attachment.eks_nodes_cni,
     aws_eks_addon.vpc_cni
   ]
-
-  # Recycle nodes so kubelet picks up the higher maxPods from prefix delegation.
-  lifecycle {
-    replace_triggered_by = [
-      aws_eks_addon.vpc_cni.configuration_values
-    ]
-  }
 }

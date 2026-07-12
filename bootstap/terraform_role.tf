@@ -353,6 +353,38 @@ data "aws_iam_policy_document" "terraform_permissions" {
 
     resources = ["*"]
   }
+
+  # EKS CreateNodegroup validates this service-linked role via iam:GetRole.
+  statement {
+    sid    = "ReadEKSNodegroupServiceLinkedRole"
+    effect = "Allow"
+
+    actions = [
+      "iam:GetRole",
+      "iam:PassRole"
+    ]
+
+    resources = [
+      "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/aws-service-role/eks-nodegroup.amazonaws.com/AWSServiceRoleForAmazonEKSNodegroup"
+    ]
+  }
+
+  statement {
+    sid    = "CreateEKSNodegroupServiceLinkedRole"
+    effect = "Allow"
+
+    actions = [
+      "iam:CreateServiceLinkedRole"
+    ]
+
+    resources = ["*"]
+
+    condition {
+      test     = "StringEquals"
+      variable = "iam:AWSServiceName"
+      values   = ["eks-nodegroup.amazonaws.com"]
+    }
+  }
 }
 
 resource "aws_iam_policy" "terraform" {
