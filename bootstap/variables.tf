@@ -21,3 +21,20 @@ variable "github_repository" {
   type        = string
   default     = "infra"
 }
+
+variable "ecr_push_github_repositories" {
+  description = "GitHub repositories that can assume the ECR push role for Docker build/push."
+  type        = list(string)
+  default = [
+    "qrify-web",
+    "qrify-web-api",
+  ]
+}
+
+variable "eks_access_github_repositories" {
+  description = "GitHub repositories that can assume the EKS access role for kubectl / Argo CD sync."
+  type        = list(string)
+  default = [
+    "cluster-state",
+  ]
+}
