@@ -9,12 +9,13 @@ resource "aws_eks_node_group" "qrify_nodes" {
   ]
 
   scaling_config {
-    desired_size = 2
-    max_size     = 2
-    min_size     = 1
+    desired_size = 3
+    max_size     = 4
+    min_size     = 2
   }
 
-  instance_types = ["t3.small"]
+  # t3.small caps ~11 pods/node (ENI IPs); medium has headroom for Rollouts + apps.
+  instance_types = ["t3.medium"]
 
   depends_on = [
     aws_iam_role_policy_attachment.eks_nodes_worker,

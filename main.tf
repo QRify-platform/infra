@@ -33,6 +33,16 @@ module "argocd" {
   }
 }
 
+module "argo_rollouts" {
+  source = "./modules/argo-rollouts"
+
+  depends_on = [module.eks]
+
+  providers = {
+    helm = helm
+  }
+}
+
 module "nginx_ingress" {
   source                = "./modules/ingress"
   namespace             = "kube-system"
