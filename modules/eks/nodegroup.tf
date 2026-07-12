@@ -9,17 +9,29 @@ resource "aws_eks_node_group" "qrify_nodes" {
   ]
 
   scaling_config {
-    desired_size = 3
-    max_size     = 4
-    min_size     = 2
+    desired_size = 2
+    max_size     = 2
+    min_size     = 1
   }
 
-  # t3.small caps ~11 pods/node (ENI IPs); medium has headroom for Rollouts + apps.
-  instance_types = ["t3.medium"]
+  # Free-tier friendly size; pod density comes from VPC CNI prefix delegation.
+  instance_types = ["t3.small"]
+
+  labels = {
+    "qrify.io/prefix-delegation" = "true"
+  }
 
   depends_on = [
     aws_iam_role_policy_attachment.eks_nodes_worker,
     aws_iam_role_policy_attachment.eks_nodes_ecr,
-    aws_iam_role_policy_attachment.eks_nodes_cni
+    aws_iam_role_policy_attachment.eks_nodes_cni,
+    aws_eks_addon.vpc_cni
   ]
+
+  # Recycle nodes so kubelet picks up the higher maxPods from prefix delegation.
+  lifecycle {
+    replace_triggered_by = [
+      aws_eks_addon.vpc_cni.configuration_values
+    ]
+  }
 }
