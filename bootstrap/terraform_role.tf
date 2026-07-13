@@ -354,6 +354,23 @@ data "aws_iam_policy_document" "terraform_permissions" {
     resources = ["*"]
   }
 
+  # EKS IRSA OIDC provider (aws_iam_openid_connect_provider in modules/eks).
+  statement {
+    sid    = "ManageEKSOidcProviders"
+    effect = "Allow"
+
+    actions = [
+      "iam:CreateOpenIDConnectProvider",
+      "iam:DeleteOpenIDConnectProvider",
+      "iam:GetOpenIDConnectProvider",
+      "iam:TagOpenIDConnectProvider",
+      "iam:UntagOpenIDConnectProvider",
+      "iam:UpdateOpenIDConnectProviderThumbprint"
+    ]
+
+    resources = ["*"]
+  }
+
   # EKS CreateNodegroup validates this service-linked role via iam:GetRole.
   statement {
     sid    = "ReadEKSNodegroupServiceLinkedRole"

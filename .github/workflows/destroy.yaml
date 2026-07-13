@@ -27,8 +27,53 @@ jobs:
           terraform_version: 1.11.1
           terraform_wrapper: false
 
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+
       - name: Terraform Init
         run: terraform init
+
+      # LoadBalancer Services leave mapped public IPs / ENIs that block
+      # DetachInternetGateway. Stop Argo from recreating them, then delete LBs.
+      - name: Drain LoadBalancer services before destroy
+        run: |
+          set +e
+          aws eks update-kubeconfig --region us-east-2 --name qrify-eks
+          if [ $? -ne 0 ]; then
+            echo "Cluster not reachable; skipping kubectl drain"
+            exit 0
+          fi
+          set -e
+
+          kubectl -n argocd scale deployment/argocd-application-controller --replicas=0 --timeout=60s || true
+          kubectl -n argocd delete applications.argoproj.io --all --wait=false || true
+
+          kubectl get svc -A -o json \
+            | jq -r '.items[] | select(.spec.type=="LoadBalancer") | "\(.metadata.namespace)\t\(.metadata.name)"' \
+            | while IFS=$'\t' read -r ns name; do
+                echo "Deleting LoadBalancer service $ns/$name"
+                kubectl delete svc -n "$ns" "$name" --wait=true --timeout=5m || true
+              done
+
+          VPC_ID=$(aws eks describe-cluster --name qrify-eks --region us-east-2 \
+            --query 'cluster.resourcesVpcConfig.vpcId' --output text 2>/dev/null || true)
+          if [ -z "$VPC_ID" ] || [ "$VPC_ID" = "None" ]; then
+            echo "Could not resolve VPC id; continuing to terraform destroy"
+            exit 0
+          fi
+
+          echo "Waiting for public addresses in $VPC_ID to clear..."
+          for i in $(seq 1 40); do
+            COUNT=$(aws ec2 describe-network-interfaces \
+              --filters "Name=vpc-id,Values=${VPC_ID}" "Name=association.public-ip,Values=*" \
+              --query 'length(NetworkInterfaces)' --output text)
+            echo "Attempt $i: $COUNT public ENI(s)"
+            if [ "$COUNT" = "0" ]; then
+              exit 0
+            fi
+            sleep 15
+          done
+          echo "Timed out waiting for public ENIs; terraform destroy may still fail on IGW"
 
       - name: Terraform Destroy
         run: terraform destroy -auto-approve
