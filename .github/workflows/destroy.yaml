@@ -33,8 +33,8 @@ jobs:
       - name: Terraform Init
         run: terraform init
 
-      # LoadBalancer Services leave mapped public IPs / ENIs that block
-      # DetachInternetGateway. Stop Argo from recreating them, then delete LBs.
+      # LoadBalancer Services leave ELB ENIs that block DetachInternetGateway.
+      # Do not wait for NAT/node public ENIs — Terraform removes those later.
       - name: Drain LoadBalancer services before destroy
         run: |
           set +e
@@ -45,6 +45,8 @@ jobs:
           fi
           set -e
 
+          # Newer Argo charts use a StatefulSet; older use a Deployment.
+          kubectl -n argocd scale statefulset/argocd-application-controller --replicas=0 --timeout=60s || true
           kubectl -n argocd scale deployment/argocd-application-controller --replicas=0 --timeout=60s || true
           kubectl -n argocd delete applications.argoproj.io --all --wait=false || true
 
@@ -62,18 +64,19 @@ jobs:
             exit 0
           fi
 
-          echo "Waiting for public addresses in $VPC_ID to clear..."
-          for i in $(seq 1 40); do
+          echo "Waiting for ELB ENIs in $VPC_ID to clear (ignoring NAT/node public IPs)..."
+          for i in $(seq 1 24); do
             COUNT=$(aws ec2 describe-network-interfaces \
-              --filters "Name=vpc-id,Values=${VPC_ID}" "Name=association.public-ip,Values=*" \
-              --query 'length(NetworkInterfaces)' --output text)
-            echo "Attempt $i: $COUNT public ENI(s)"
+              --filters "Name=vpc-id,Values=${VPC_ID}" \
+              --query 'length(NetworkInterfaces[?starts_with(Description, `ELB`)])' \
+              --output text)
+            echo "Attempt $i: $COUNT ELB ENI(s)"
             if [ "$COUNT" = "0" ]; then
               exit 0
             fi
             sleep 15
           done
-          echo "Timed out waiting for public ENIs; terraform destroy may still fail on IGW"
+          echo "Timed out waiting for ELB ENIs; continuing to terraform destroy"
 
       - name: Terraform Destroy
         run: terraform destroy -auto-approve
