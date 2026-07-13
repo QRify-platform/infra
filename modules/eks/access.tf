@@ -1,29 +1,12 @@
-# Allow GitHub Actions (OIDC) Terraform role to talk to the Kubernetes API.
-# Without this, helm/kubernetes providers get Unauthorized in CI.
-data "aws_iam_role" "terraform" {
-  name = "QRifyTerraformRole"
-}
+# Allow GitHub Actions (OIDC) roles to talk to the Kubernetes API.
+#
+# QRifyTerraformRole is NOT given an explicit access entry here: apply runs as
+# that role with bootstrap_cluster_creator_admin_permissions = true, so EKS
+# already creates the cluster-admin entry for the creator. Defining it again
+# causes CreateAccessEntry 409 ResourceInUseException on every rebuild.
 
 data "aws_iam_role" "eks_access" {
   name = "QRifyEKSAccessRole"
-}
-
-resource "aws_eks_access_entry" "terraform" {
-  cluster_name  = aws_eks_cluster.qrify.name
-  principal_arn = data.aws_iam_role.terraform.arn
-  type          = "STANDARD"
-}
-
-resource "aws_eks_access_policy_association" "terraform_admin" {
-  cluster_name  = aws_eks_cluster.qrify.name
-  principal_arn = data.aws_iam_role.terraform.arn
-  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
-
-  access_scope {
-    type = "cluster"
-  }
-
-  depends_on = [aws_eks_access_entry.terraform]
 }
 
 # cluster-state CI: map the role into a Kubernetes group. Permissions come from
