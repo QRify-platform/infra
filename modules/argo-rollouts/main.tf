@@ -13,7 +13,9 @@ resource "helm_release" "argo_rollouts" {
   values = [
     <<-EOT
     dashboard:
-      enabled: false
+      enabled: true
+      service:
+        type: LoadBalancer
     installCRDs: true
     EOT
   ]
