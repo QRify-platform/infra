@@ -53,10 +53,10 @@ resource "null_resource" "wait_for_nginx_ingress_lb" {
 
 
 
-data "kubernetes_service" "nginx_ingress_lb" {
+data "kubernetes_service_v1" "nginx_ingress_lb" {
   metadata {
     name      = "nginx-ingress-controller-ingress-nginx-controller"
-    namespace = "ingress-nginx" 
+    namespace = "ingress-nginx"
   }
 
   depends_on = [null_resource.wait_for_nginx_ingress_lb]

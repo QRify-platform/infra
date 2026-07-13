@@ -5,11 +5,16 @@ resource "helm_release" "argo_rollouts" {
   chart            = "argo-rollouts"
   version          = "2.40.10"
   create_namespace = true
+  timeout          = 600
+  # Helm does not uninstall CRDs; avoid hanging destroy on leftover CR instances.
+  wait             = true
+  wait_for_jobs    = false
 
   values = [
     <<-EOT
     dashboard:
       enabled: false
+    installCRDs: true
     EOT
   ]
 }

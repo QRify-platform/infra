@@ -1,0 +1,111 @@
+name: Rebuild Platform
+
+# Tier-1 DR: terraform apply → seed service images → Argo sync.
+# Rebuilds the managed stack on top of bootstrap/ (trust + state IAM).
+# Requires secret GH_DISPATCH_TOKEN (PAT or GitHub App token) with
+# actions:write on QRify-platform/{qrify-web,qrify-web-api,cluster-state}.
+
+on:
+  workflow_dispatch:
+    inputs:
+      skip_terraform:
+        description: Skip terraform apply (seed + sync only)
+        type: boolean
+        default: false
+      skip_releases:
+        description: Skip service release workflows
+        type: boolean
+        default: false
+      skip_argo_sync:
+        description: Skip Argo CD sync
+        type: boolean
+        default: false
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  terraform:
+    if: ${{ !inputs.skip_terraform }}
+    uses: ./.github/workflows/apply.yaml
+    secrets: inherit
+
+  catalog:
+    runs-on: ubuntu-latest
+    needs: [terraform]
+    if: ${{ always() && (needs.terraform.result == 'success' || needs.terraform.result == 'skipped') }}
+    outputs:
+      services: ${{ steps.parse.outputs.services }}
+      argo_repo: ${{ steps.parse.outputs.argo_repo }}
+      argo_workflow: ${{ steps.parse.outputs.argo_workflow }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Parse service catalog
+        id: parse
+        run: |
+          sudo wget -qO /usr/local/bin/yq \
+            https://github.com/mikefarah/yq/releases/download/v4.44.3/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+
+          # Expand each service × workflow into matrix rows
+          SERVICES=$(yq -o=json -I=0 '
+            [.services[] | .repo as $repo | .workflows[] | {"repo": $repo, "workflow": .}]
+          ' catalog/services.yaml)
+          echo "services=$SERVICES" >> "$GITHUB_OUTPUT"
+          echo "argo_repo=$(yq -r '.argo_sync.repo' catalog/services.yaml)" >> "$GITHUB_OUTPUT"
+          echo "argo_workflow=$(yq -r '.argo_sync.workflow' catalog/services.yaml)" >> "$GITHUB_OUTPUT"
+
+  seed-releases:
+    needs: [catalog]
+    if: ${{ !inputs.skip_releases && needs.catalog.result == 'success' }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        service: ${{ fromJson(needs.catalog.outputs.services) }}
+    steps:
+      - name: Trigger ${{ matrix.service.repo }} / ${{ matrix.service.workflow }}
+        env:
+          GH_TOKEN: ${{ secrets.GH_DISPATCH_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh workflow run "${{ matrix.service.workflow }}" \
+            --repo "${{ matrix.service.repo }}" \
+            --ref main
+
+          sleep 8
+          RUN_ID=$(gh run list \
+            --repo "${{ matrix.service.repo }}" \
+            --workflow "${{ matrix.service.workflow }}" \
+            --limit 1 \
+            --json databaseId \
+            --jq '.[0].databaseId')
+          echo "Watching run $RUN_ID"
+          gh run watch "$RUN_ID" --repo "${{ matrix.service.repo }}" --exit-status
+
+  argo-sync:
+    needs: [catalog, seed-releases]
+    if: ${{ !inputs.skip_argo_sync && always() && needs.catalog.result == 'success' && (needs.seed-releases.result == 'success' || needs.seed-releases.result == 'skipped') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Argo CD sync
+        env:
+          GH_TOKEN: ${{ secrets.GH_DISPATCH_TOKEN }}
+        run: |
+          set -euo pipefail
+          REPO="${{ needs.catalog.outputs.argo_repo }}"
+          WF="${{ needs.catalog.outputs.argo_workflow }}"
+
+          gh workflow run "$WF" --repo "$REPO" --ref main
+          sleep 8
+          RUN_ID=$(gh run list \
+            --repo "$REPO" \
+            --workflow "$WF" \
+            --limit 1 \
+            --json databaseId \
+            --jq '.[0].databaseId')
+          echo "Watching run $RUN_ID"
+          gh run watch "$RUN_ID" --repo "$REPO" --exit-status
