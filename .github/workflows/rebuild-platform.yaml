@@ -27,7 +27,8 @@ permissions:
 
 jobs:
   terraform:
-    if: ${{ !inputs.skip_terraform }}
+    # Boolean workflow inputs can arrive as strings; !"false" wrongly skips jobs.
+    if: ${{ inputs.skip_terraform != true && inputs.skip_terraform != 'true' }}
     uses: ./.github/workflows/apply.yaml
     secrets: inherit
 
@@ -59,7 +60,7 @@ jobs:
 
   seed-releases:
     needs: [catalog]
-    if: ${{ !inputs.skip_releases && needs.catalog.result == 'success' }}
+    if: ${{ always() && inputs.skip_releases != true && inputs.skip_releases != 'true' && needs.catalog.result == 'success' }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -88,7 +89,7 @@ jobs:
 
   argo-sync:
     needs: [catalog, seed-releases]
-    if: ${{ !inputs.skip_argo_sync && always() && needs.catalog.result == 'success' && (needs.seed-releases.result == 'success' || needs.seed-releases.result == 'skipped') }}
+    if: ${{ always() && inputs.skip_argo_sync != true && inputs.skip_argo_sync != 'true' && needs.catalog.result == 'success' && (needs.seed-releases.result == 'success' || needs.seed-releases.result == 'skipped') }}
     runs-on: ubuntu-latest
     steps:
       - name: Trigger Argo CD sync
