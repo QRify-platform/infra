@@ -57,14 +57,17 @@ module "argo_rollouts" {
 
 module "nginx_ingress" {
   source                = "./modules/ingress"
-  namespace             = "kube-system"
+  namespace             = "ingress-nginx"
   ingress_chart_version = "4.10.0"
   oidc_provider_arn     = module.eks.oidc_provider_arn
   cluster_name          = module.eks.cluster_name
+  domain_name           = "qrify-web.com"
+  dev_hostname          = "dev.qrify-web.com"
 
   depends_on = [module.eks]
 
   providers = {
+    aws        = aws
     helm       = helm
     kubernetes = kubernetes
   }
