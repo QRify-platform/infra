@@ -1,21 +1,77 @@
+data "aws_route53_zone" "main" {
+  name         = var.domain_name
+  private_zone = false
+}
+
+data "aws_elb_hosted_zone_id" "main" {}
+
+resource "aws_acm_certificate" "apex" {
+  domain_name               = var.domain_name
+  subject_alternative_names = [var.dev_hostname]
+  validation_method         = "DNS"
+
+  lifecycle {
+    create_before_destroy = true
+  }
+
+  tags = {
+    Project   = "QRify"
+    ManagedBy = "Terraform"
+    Purpose   = "IngressTLS"
+  }
+}
+
+resource "aws_route53_record" "acm_validation" {
+  for_each = {
+    for dvo in aws_acm_certificate.apex.domain_validation_options : dvo.domain_name => {
+      name   = dvo.resource_record_name
+      record = dvo.resource_record_value
+      type   = dvo.resource_record_type
+    }
+  }
+
+  allow_overwrite = true
+  name            = each.value.name
+  records         = [each.value.record]
+  ttl             = 60
+  type            = each.value.type
+  zone_id         = data.aws_route53_zone.main.zone_id
+}
+
+resource "aws_acm_certificate_validation" "apex" {
+  certificate_arn         = aws_acm_certificate.apex.arn
+  validation_record_fqdns = [for record in aws_route53_record.acm_validation : record.fqdn]
+}
+
 resource "helm_release" "nginx_ingress" {
   name             = "nginx-ingress-controller"
-  namespace        = "ingress-nginx"
+  namespace        = var.namespace
   repository       = "https://kubernetes.github.io/ingress-nginx"
   chart            = "ingress-nginx"
-  version          = "4.10.0"
+  version          = var.ingress_chart_version
   create_namespace = true
+  timeout          = 600
 
-  set = [
-    {
-      name  = "controller.service.type"
-      value = "LoadBalancer"
-    },
-    {
-      name  = "controller.publishService.enabled"
-      value = "true"
-    }
+  values = [
+    yamlencode({
+      controller = {
+        publishService = {
+          enabled = true
+        }
+        service = {
+          type = "LoadBalancer"
+          annotations = {
+            "service.beta.kubernetes.io/aws-load-balancer-ssl-cert"           = aws_acm_certificate_validation.apex.certificate_arn
+            "service.beta.kubernetes.io/aws-load-balancer-backend-protocol"  = "http"
+            "service.beta.kubernetes.io/aws-load-balancer-ssl-ports"         = "https"
+            "service.beta.kubernetes.io/aws-load-balancer-connection-idle-timeout" = "60"
+          }
+        }
+      }
+    })
   ]
+
+  depends_on = [aws_acm_certificate_validation.apex]
 }
 
 resource "null_resource" "wait_for_nginx_ingress_lb" {
@@ -23,9 +79,9 @@ resource "null_resource" "wait_for_nginx_ingress_lb" {
     command = <<EOT
       echo "Starting check for NGINX Ingress LoadBalancer..."
       for i in {1..60}; do
-        OUTPUT=$(kubectl get svc -n ${var.namespace} nginx-ingress-controller -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>&1)
+        OUTPUT=$(kubectl get svc -n ${var.namespace} nginx-ingress-controller-ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>&1)
         echo "Attempt $i: $OUTPUT"
-        if [[ ! -z "$OUTPUT" && "$OUTPUT" != *"error"* ]]; then
+        if [[ ! -z "$OUTPUT" && "$OUTPUT" != *"error"* && "$OUTPUT" != *"NotFound"* ]]; then
           echo "Ingress LB ready: $OUTPUT"
           exit 0
         fi
@@ -41,37 +97,46 @@ resource "null_resource" "wait_for_nginx_ingress_lb" {
   depends_on = [helm_release.nginx_ingress]
 }
 
-
-
-
-
-# data "aws_route53_zone" "main" {
-#   name         = "qrify-web.com"
-#   private_zone = false
-# }
-
-
-
-
 data "kubernetes_service_v1" "nginx_ingress_lb" {
   metadata {
     name      = "nginx-ingress-controller-ingress-nginx-controller"
-    namespace = "ingress-nginx"
+    namespace = var.namespace
   }
 
   depends_on = [null_resource.wait_for_nginx_ingress_lb]
 }
 
+locals {
+  nginx_lb_hostname = try(
+    data.kubernetes_service_v1.nginx_ingress_lb.status[0].load_balancer[0].ingress[0].hostname,
+    null
+  )
+}
 
-# resource "aws_route53_record" "nginx_alias" {
-#   zone_id = data.aws_route53_zone.main.zone_id
-#   name    = "qrify-web.com"
-#   type    = "A"
-#
-#   alias {
-#     name                   = data.kubernetes_service.nginx_ingress_lb.status[0].load_balancer[0].ingress[0].hostname
-#     zone_id                = "Z3AADJGX6KTTL2"
-#     evaluate_target_health = true
-#   }
-# }
+resource "aws_route53_record" "apex" {
+  zone_id = data.aws_route53_zone.main.zone_id
+  name    = var.domain_name
+  type    = "A"
 
+  alias {
+    name                   = local.nginx_lb_hostname
+    zone_id                = data.aws_elb_hosted_zone_id.main.id
+    evaluate_target_health = true
+  }
+
+  depends_on = [null_resource.wait_for_nginx_ingress_lb]
+}
+
+resource "aws_route53_record" "dev" {
+  zone_id = data.aws_route53_zone.main.zone_id
+  name    = var.dev_hostname
+  type    = "A"
+
+  alias {
+    name                   = local.nginx_lb_hostname
+    zone_id                = data.aws_elb_hosted_zone_id.main.id
+    evaluate_target_health = true
+  }
+
+  depends_on = [null_resource.wait_for_nginx_ingress_lb]
+}

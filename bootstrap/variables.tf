@@ -38,3 +38,9 @@ variable "eks_access_github_repositories" {
     "cluster-state",
   ]
 }
+
+variable "domain_name" {
+  description = "Public apex domain for QRify (Route53 hosted zone; registrar points NS here)."
+  type        = string
+  default     = "qrify-web.com"
+}
