@@ -263,6 +263,7 @@ data "aws_iam_policy_document" "terraform_permissions" {
       "route53:ListHostedZones",
       "route53:ListHostedZonesByName",
       "route53:ListResourceRecordSets",
+      "route53:ListTagsForResource",
       "acm:AddTagsToCertificate",
       "acm:DeleteCertificate",
       "acm:DescribeCertificate",

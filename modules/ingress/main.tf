@@ -60,11 +60,16 @@ resource "helm_release" "nginx_ingress" {
         }
         service = {
           type = "LoadBalancer"
+          # ACM terminates TLS on the ELB; nginx must receive plain HTTP on both 80 and 443.
+          targetPorts = {
+            http  = "http"
+            https = "http"
+          }
           annotations = {
-            "service.beta.kubernetes.io/aws-load-balancer-ssl-cert"           = aws_acm_certificate_validation.apex.certificate_arn
-            "service.beta.kubernetes.io/aws-load-balancer-backend-protocol"  = "http"
-            "service.beta.kubernetes.io/aws-load-balancer-ssl-ports"         = "https"
-            "service.beta.kubernetes.io/aws-load-balancer-connection-idle-timeout" = "60"
+            "service.beta.kubernetes.io/aws-load-balancer-ssl-cert"                    = aws_acm_certificate_validation.apex.certificate_arn
+            "service.beta.kubernetes.io/aws-load-balancer-backend-protocol"           = "http"
+            "service.beta.kubernetes.io/aws-load-balancer-ssl-ports"                  = "https"
+            "service.beta.kubernetes.io/aws-load-balancer-connection-idle-timeout"    = "60"
           }
         }
       }
