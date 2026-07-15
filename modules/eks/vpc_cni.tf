@@ -1,4 +1,4 @@
-# Prefix delegation raises maxPods on t3.small (~11 → ~110) without larger instances.
+
 resource "aws_eks_addon" "vpc_cni" {
   cluster_name = aws_eks_cluster.qrify.name
   addon_name   = "vpc-cni"
