@@ -12,71 +12,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
+      - name: Terraform setup
+        uses: QRify-platform/github-actions/terraform-setup@main
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: us-east-2
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_version: 1.11.1
-          terraform_wrapper: false
-
-      - name: Set up kubectl
-        uses: azure/setup-kubectl@v4
-
-      - name: Terraform Init
-        run: terraform init
-
       # LoadBalancer Services leave ELB ENIs that block DetachInternetGateway.
-      # Do not wait for NAT/node public ENIs — Terraform removes those later.
       - name: Drain LoadBalancer services before destroy
-        run: |
-          set +e
-          aws eks update-kubeconfig --region us-east-2 --name qrify-eks
-          if [ $? -ne 0 ]; then
-            echo "Cluster not reachable; skipping kubectl drain"
-            exit 0
-          fi
-          set -e
-
-          # Newer Argo charts use a StatefulSet; older use a Deployment.
-          kubectl -n argocd scale statefulset/argocd-application-controller --replicas=0 --timeout=60s || true
-          kubectl -n argocd scale deployment/argocd-application-controller --replicas=0 --timeout=60s || true
-          kubectl -n argocd delete applications.argoproj.io --all --wait=false || true
-
-          kubectl get svc -A -o json \
-            | jq -r '.items[] | select(.spec.type=="LoadBalancer") | "\(.metadata.namespace)\t\(.metadata.name)"' \
-            | while IFS=$'\t' read -r ns name; do
-                echo "Deleting LoadBalancer service $ns/$name"
-                kubectl delete svc -n "$ns" "$name" --wait=true --timeout=5m || true
-              done
-
-          VPC_ID=$(aws eks describe-cluster --name qrify-eks --region us-east-2 \
-            --query 'cluster.resourcesVpcConfig.vpcId' --output text 2>/dev/null || true)
-          if [ -z "$VPC_ID" ] || [ "$VPC_ID" = "None" ]; then
-            echo "Could not resolve VPC id; continuing to terraform destroy"
-            exit 0
-          fi
-
-          echo "Waiting for ELB ENIs in $VPC_ID to clear (ignoring NAT/node public IPs)..."
-          for i in $(seq 1 24); do
-            COUNT=$(aws ec2 describe-network-interfaces \
-              --filters "Name=vpc-id,Values=${VPC_ID}" \
-              --query 'length(NetworkInterfaces[?starts_with(Description, `ELB`)])' \
-              --output text)
-            echo "Attempt $i: $COUNT ELB ENI(s)"
-            if [ "$COUNT" = "0" ]; then
-              exit 0
-            fi
-            sleep 15
-          done
-          echo "Timed out waiting for ELB ENIs; continuing to terraform destroy"
+        uses: QRify-platform/github-actions/eks-drain-loadbalancers@main
+        with:
+          aws-region: us-east-2
+          cluster-name: qrify-eks
 
       - name: Terraform Destroy
         run: terraform destroy -auto-approve

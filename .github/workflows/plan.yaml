@@ -16,23 +16,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Configure AWS credentials from OIDC
-        uses: aws-actions/configure-aws-credentials@v2
+      - name: Terraform setup
+        uses: QRify-platform/github-actions/terraform-setup@main
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: us-east-2
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_version: 1.11.1
-          terraform_wrapper: false
-
-      - name: Terraform Init
-        run: terraform init
 
       - name: Terraform Plan
         run: terraform plan
