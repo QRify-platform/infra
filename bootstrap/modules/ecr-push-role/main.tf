@@ -33,7 +33,8 @@ data "aws_iam_policy_document" "ecr_push_role_trust" {
       # Any repo in the org can assume this role for image push (portal scaffolds
       # new services; listing each repo does not scale).
       values = [
-        "repo:${var.github_organization}/*:*"
+        "repo:${var.github_organization}/*:*",
+        "repo:${var.github_organization}/*",
       ]
     }
   }
