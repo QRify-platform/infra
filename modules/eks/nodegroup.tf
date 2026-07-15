@@ -14,8 +14,8 @@ resource "aws_eks_node_group" "qrify_nodes" {
     min_size     = 1
   }
 
-  # Free-tier friendly size; pod density comes from VPC CNI prefix delegation.
-  instance_types = ["t3.small"]
+  # t3.small (2Gi) OOMs under Argo + Prometheus/Loki + apps; medium is the floor.
+  instance_types = ["t3.medium"]
 
   labels = {
     "qrify.io/prefix-delegation" = "true"

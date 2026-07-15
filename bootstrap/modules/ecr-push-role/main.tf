@@ -32,9 +32,18 @@ data "aws_iam_policy_document" "ecr_push_role_trust" {
 
       # Any repo in the org can assume this role for image push (portal scaffolds
       # new services; listing each repo does not scale).
+      # Prefer org+repo numeric ID form (GitHub Actions current default for many orgs):
+      #   repo:ORG@ORG_ID/REPO@REPO_ID:ref:...
+      # Keep slug form for older tokens.
       values = [
-        "repo:${var.github_organization}/*:*",
+        "repo:${var.github_organization}@213210147/*",
+        "repo:${var.github_organization}@213210147/*:*",
+        "repo:${var.github_organization}@213210147/*@*:ref:*",
         "repo:${var.github_organization}/*",
+        "repo:${var.github_organization}/*:*",
+        "repo:${var.github_organization}/qrify-portal:*",
+        "repo:${var.github_organization}/qrify-web:*",
+        "repo:${var.github_organization}/qrify-web-api:*",
       ]
     }
   }
