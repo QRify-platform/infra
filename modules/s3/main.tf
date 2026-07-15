@@ -10,7 +10,8 @@ resource "aws_s3_bucket" "qrify_storage" {
 }
 
 # Private bucket — API objects use IRSA + regional pre-signed URLs.
-resource "aws_s3_bucket_public_access_block" "qrify" {
+# Resource name kept as qrify_allow_public to match existing state (avoid moved + -target clash in CI).
+resource "aws_s3_bucket_public_access_block" "qrify_allow_public" {
   bucket = aws_s3_bucket.qrify_storage.id
 
   block_public_acls       = true
