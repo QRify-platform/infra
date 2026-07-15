@@ -33,3 +33,14 @@ variable "portal_dev_hostname" {
   default     = "portal-dev.qrify-web.com"
   description = "Dev hostname for the internal developer portal."
 }
+
+variable "cluster_name" {
+  type        = string
+  description = "EKS cluster name (for kubectl wait in local-exec)."
+}
+
+variable "aws_region" {
+  type        = string
+  default     = "us-east-2"
+  description = "AWS region of the EKS cluster."
+}

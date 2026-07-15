@@ -86,25 +86,28 @@ resource "helm_release" "nginx_ingress" {
 resource "null_resource" "wait_for_nginx_ingress_lb" {
   triggers = {
     release = helm_release.nginx_ingress.id
+    script  = "kubeconfig-v1"
   }
 
   provisioner "local-exec" {
-    command     = <<EOT
-      echo "Starting check for NGINX Ingress LoadBalancer..."
-      for i in {1..60}; do
-        OUTPUT=$(kubectl get svc -n ${var.namespace} nginx-ingress-controller-ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>&1)
-        echo "Attempt $i: $OUTPUT"
-        if [[ ! -z "$OUTPUT" && "$OUTPUT" != *"error"* && "$OUTPUT" != *"NotFound"* ]]; then
-          echo "Ingress LB ready: $OUTPUT"
+    interpreter = ["/bin/bash", "-c"]
+    command     = <<-EOT
+      set -euo pipefail
+      aws eks update-kubeconfig --region '${var.aws_region}' --name '${var.cluster_name}' >/dev/null
+      echo "Waiting for NGINX Ingress LoadBalancer hostname..."
+      for i in $(seq 1 60); do
+        HOST=$(kubectl get svc -n '${var.namespace}' nginx-ingress-controller-ingress-nginx-controller \
+          -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || true)
+        if [[ -n "$${HOST}" && "$${HOST}" == *amazonaws.com ]]; then
+          echo "Ingress LB ready: $${HOST}"
           exit 0
         fi
-        echo "Waiting for nginx ingress load balancer..."
+        echo "Attempt $$i: not ready yet"
         sleep 10
       done
-      echo "Timed out waiting for load balancer"
+      echo "Timed out waiting for load balancer hostname" >&2
       exit 1
     EOT
-    interpreter = ["/bin/bash", "-c"]
   }
 
   depends_on = [helm_release.nginx_ingress]
