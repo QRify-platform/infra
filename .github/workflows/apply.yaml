@@ -29,12 +29,6 @@ jobs:
       - name: Terraform Apply (EKS)
         run: terraform apply -target=module.eks -auto-approve
 
-      - name: EKS kubeconfig
-        uses: QRify-platform/github-actions/eks-kubeconfig@main
-        with:
-          aws-region: us-east-2
-          cluster-name: qrify-eks
-
       # Pass 2: Helm charts and remaining resources
       - name: Terraform Apply (full stack)
         run: terraform apply -auto-approve
