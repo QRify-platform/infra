@@ -64,8 +64,23 @@ data "aws_iam_policy_document" "ecr_push_permissions" {
     resources = ["*"]
   }
 
+  # Portal scaffold creates {service}-dev / {service}-prod repos on demand.
   statement {
-    sid    = "ECRPushPullQRifyRepos"
+    sid    = "ECRCreateRepos"
+    effect = "Allow"
+
+    actions = [
+      "ecr:CreateRepository",
+      "ecr:TagResource",
+      "ecr:PutImageScanningConfiguration",
+      "ecr:PutLifecyclePolicy",
+    ]
+
+    resources = ["*"]
+  }
+
+  statement {
+    sid    = "ECRPushPullRepos"
     effect = "Allow"
 
     actions = [
@@ -77,11 +92,11 @@ data "aws_iam_policy_document" "ecr_push_permissions" {
       "ecr:PutImage",
       "ecr:UploadLayerPart",
       "ecr:DescribeRepositories",
-      "ecr:DescribeImages"
+      "ecr:DescribeImages",
     ]
 
     resources = [
-      "arn:aws:ecr:${var.aws_region}:${data.aws_caller_identity.current.account_id}:repository/qrify-*"
+      "arn:aws:ecr:${var.aws_region}:${data.aws_caller_identity.current.account_id}:repository/*"
     ]
   }
 }

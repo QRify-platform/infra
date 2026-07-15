@@ -10,7 +10,7 @@ services:
     workflows:
       - release.dev.yaml
       - release.prod.yaml
-  - repo: QRify-platform/portal
+  - repo: QRify-platform/qrify-portal
     workflows:
       - release.dev.yaml
       - release.prod.yaml
