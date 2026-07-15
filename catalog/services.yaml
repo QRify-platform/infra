@@ -10,6 +10,10 @@ services:
     workflows:
       - release.dev.yaml
       - release.prod.yaml
+  - repo: QRify-platform/portal
+    workflows:
+      - release.dev.yaml
+      - release.prod.yaml
 
 argo_sync:
   repo: QRify-platform/cluster-state

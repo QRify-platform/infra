@@ -30,9 +30,10 @@ data "aws_iam_policy_document" "ecr_push_role_trust" {
       test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
 
+      # Any repo in the org can assume this role for image push (portal scaffolds
+      # new services; listing each repo does not scale).
       values = [
-        for repo in var.ecr_push_github_repositories :
-        "repo:${var.github_organization}/${repo}:*"
+        "repo:${var.github_organization}/*:*"
       ]
     }
   }

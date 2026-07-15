@@ -13,3 +13,7 @@ output "apex_domain_name" {
 output "dev_hostname" {
   value = var.dev_hostname
 }
+
+output "portal_hostname" {
+  value = var.portal_hostname
+}

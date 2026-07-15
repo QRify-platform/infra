@@ -3,7 +3,7 @@ name: Rebuild Platform
 # Tier-1 DR: terraform apply → seed service images → Argo sync.
 # Rebuilds the managed stack on top of bootstrap/ (trust + state IAM).
 # Requires secret GH_DISPATCH_TOKEN (PAT or GitHub App token) with
-# actions:write on QRify-platform/{qrify-web,qrify-web-api,cluster-state}.
+# actions:write on QRify-platform/{qrify-web,qrify-web-api,portal,cluster-state}.
 
 on:
   workflow_dispatch:
