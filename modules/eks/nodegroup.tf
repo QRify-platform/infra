@@ -14,8 +14,7 @@ resource "aws_eks_node_group" "qrify_nodes" {
     min_size     = 1
   }
 
-  # Free-tier friendly size; pod density comes from VPC CNI prefix delegation.
-  instance_types = ["t3.small"]
+  instance_types = ["t3.medium"]
 
   labels = {
     "qrify.io/prefix-delegation" = "true"
