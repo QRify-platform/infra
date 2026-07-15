@@ -85,8 +85,7 @@ resource "helm_release" "nginx_ingress" {
 
 resource "null_resource" "wait_for_nginx_ingress_lb" {
   triggers = {
-    release  = helm_release.nginx_ingress.id
-    wait_gen = "2"
+    release = helm_release.nginx_ingress.id
   }
 
   provisioner "local-exec" {
@@ -120,27 +119,8 @@ data "kubernetes_service_v1" "nginx_ingress_lb" {
   depends_on = [null_resource.wait_for_nginx_ingress_lb]
 }
 
-resource "terraform_data" "ingress_lb_hostname" {
-  input = try(
-    data.kubernetes_service_v1.nginx_ingress_lb.status[0].load_balancer[0].ingress[0].hostname,
-    ""
-  )
-
-  depends_on = [null_resource.wait_for_nginx_ingress_lb]
-
-  lifecycle {
-    ignore_changes = [input]
-  }
-}
-
 locals {
-  nginx_lb_hostname = coalesce(
-    try(nullif(terraform_data.ingress_lb_hostname.output, ""), null),
-    try(
-      data.kubernetes_service_v1.nginx_ingress_lb.status[0].load_balancer[0].ingress[0].hostname,
-      null
-    )
-  )
+  nginx_lb_hostname = data.kubernetes_service_v1.nginx_ingress_lb.status[0].load_balancer[0].ingress[0].hostname
 }
 
 resource "aws_route53_record" "apex" {
@@ -154,7 +134,7 @@ resource "aws_route53_record" "apex" {
     evaluate_target_health = true
   }
 
-  depends_on = [terraform_data.ingress_lb_hostname]
+  depends_on = [null_resource.wait_for_nginx_ingress_lb]
 }
 
 resource "aws_route53_record" "dev" {
@@ -168,7 +148,7 @@ resource "aws_route53_record" "dev" {
     evaluate_target_health = true
   }
 
-  depends_on = [terraform_data.ingress_lb_hostname]
+  depends_on = [null_resource.wait_for_nginx_ingress_lb]
 }
 
 resource "aws_route53_record" "portal" {
@@ -182,7 +162,7 @@ resource "aws_route53_record" "portal" {
     evaluate_target_health = true
   }
 
-  depends_on = [terraform_data.ingress_lb_hostname]
+  depends_on = [null_resource.wait_for_nginx_ingress_lb]
 }
 
 resource "aws_route53_record" "portal_dev" {
@@ -196,5 +176,5 @@ resource "aws_route53_record" "portal_dev" {
     evaluate_target_health = true
   }
 
-  depends_on = [terraform_data.ingress_lb_hostname]
+  depends_on = [null_resource.wait_for_nginx_ingress_lb]
 }
