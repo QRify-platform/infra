@@ -46,11 +46,11 @@ jobs:
       - name: Parse service catalog
         id: parse
         run: |
+          set -euo pipefail
           sudo wget -qO /usr/local/bin/yq \
             https://github.com/mikefarah/yq/releases/download/v4.44.3/yq_linux_amd64
           sudo chmod +x /usr/local/bin/yq
 
-          # Expand each service × workflow into matrix rows
           SERVICES=$(yq -o=json -I=0 '
             [.services[] | .repo as $repo | .workflows[] | {"repo": $repo, "workflow": .}]
           ' catalog/services.yaml)
@@ -69,23 +69,11 @@ jobs:
         service: ${{ fromJson(needs.catalog.outputs.services) }}
     steps:
       - name: Trigger ${{ matrix.service.repo }} / ${{ matrix.service.workflow }}
-        env:
-          GH_TOKEN: ${{ secrets.GH_DISPATCH_TOKEN }}
-        run: |
-          set -euo pipefail
-          gh workflow run "${{ matrix.service.workflow }}" \
-            --repo "${{ matrix.service.repo }}" \
-            --ref main
-
-          sleep 8
-          RUN_ID=$(gh run list \
-            --repo "${{ matrix.service.repo }}" \
-            --workflow "${{ matrix.service.workflow }}" \
-            --limit 1 \
-            --json databaseId \
-            --jq '.[0].databaseId')
-          echo "Watching run $RUN_ID"
-          gh run watch "$RUN_ID" --repo "${{ matrix.service.repo }}" --exit-status
+        uses: QRify-platform/github-actions/dispatch-and-wait@main
+        with:
+          repository: ${{ matrix.service.repo }}
+          workflow: ${{ matrix.service.workflow }}
+          github-token: ${{ secrets.GH_DISPATCH_TOKEN }}
 
   argo-sync:
     needs: [catalog, seed-releases]
@@ -93,20 +81,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Trigger Argo CD sync
-        env:
-          GH_TOKEN: ${{ secrets.GH_DISPATCH_TOKEN }}
-        run: |
-          set -euo pipefail
-          REPO="${{ needs.catalog.outputs.argo_repo }}"
-          WF="${{ needs.catalog.outputs.argo_workflow }}"
-
-          gh workflow run "$WF" --repo "$REPO" --ref main
-          sleep 8
-          RUN_ID=$(gh run list \
-            --repo "$REPO" \
-            --workflow "$WF" \
-            --limit 1 \
-            --json databaseId \
-            --jq '.[0].databaseId')
-          echo "Watching run $RUN_ID"
-          gh run watch "$RUN_ID" --repo "$REPO" --exit-status
+        uses: QRify-platform/github-actions/dispatch-and-wait@main
+        with:
+          repository: ${{ needs.catalog.outputs.argo_repo }}
+          workflow: ${{ needs.catalog.outputs.argo_workflow }}
+          github-token: ${{ secrets.GH_DISPATCH_TOKEN }}
