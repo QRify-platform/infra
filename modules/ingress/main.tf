@@ -116,9 +116,15 @@ data "kubernetes_service_v1" "nginx_ingress_lb" {
 }
 
 locals {
-  nginx_lb_hostname = try(
-    data.kubernetes_service_v1.nginx_ingress_lb.status[0].load_balancer[0].ingress[0].hostname,
-    null
+  # Prefer the live LB hostname. Non-empty fallback keeps destroy plans valid when
+  # the Service is already gone (e.g. drained). AWS delete uses the record ID in
+  # state — the alias target string is only needed so the config evaluates.
+  nginx_lb_hostname = coalesce(
+    try(
+      data.kubernetes_service_v1.nginx_ingress_lb.status[0].load_balancer[0].ingress[0].hostname,
+      null
+    ),
+    "pending.elb.amazonaws.com"
   )
 }
 
