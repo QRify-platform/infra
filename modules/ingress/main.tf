@@ -86,19 +86,17 @@ resource "helm_release" "nginx_ingress" {
 resource "null_resource" "wait_for_nginx_ingress_lb" {
   triggers = {
     release = helm_release.nginx_ingress.id
-    script  = "kubeconfig-v1"
   }
 
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
     command     = <<-EOT
       set -euo pipefail
-      aws eks update-kubeconfig --region '${var.aws_region}' --name '${var.cluster_name}' >/dev/null
       echo "Waiting for NGINX Ingress LoadBalancer hostname..."
       for i in $(seq 1 60); do
         HOST=$(kubectl get svc -n '${var.namespace}' nginx-ingress-controller-ingress-nginx-controller \
           -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || true)
-        if [[ -n "$${HOST}" && "$${HOST}" == *amazonaws.com ]]; then
+        if [[ -n "$${HOST}" ]]; then
           echo "Ingress LB ready: $${HOST}"
           exit 0
         fi

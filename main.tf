@@ -56,8 +56,6 @@ module "argo_rollouts" {
 module "nginx_ingress" {
   source = "./modules/ingress"
 
-  cluster_name = module.eks.cluster_name
-
   depends_on = [module.eks]
 
   providers = {
