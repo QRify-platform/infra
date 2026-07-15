@@ -30,23 +30,6 @@ Terraform is split on purpose so **destroy/rebuild does not wipe the foundation*
 
 If everything lived in one state file, `terraform destroy` would also delete state storage, OIDC trust, and the DNS zone — breaking CI and domain delegation on every DR run.
 
-## Why modules (not one big file)
-
-Modules are boundaries by concern, not a single mega-IAM dump.
-
-**Bootstrap modules** (`bootstrap/modules/`):
-
-- `state-bucket` — Terraform remote state
-- `github-oidc` — Actions → AWS trust
-- `terraform-role` — what Apply/Destroy is allowed to do
-- `ecr-push-role` / `eks-access-role` — narrower CI roles for image push and kubectl/Argo sync
-- `dns` — long-lived hosted zone only (records for the LB live in the managed stack)
-
-**Managed stack modules** (`modules/`):
-
-- `eks`, `ecr`, `s3`, `api-irsa` — cluster and app-facing AWS
-- `ingress` — NGINX + ACM + `qrify-web.com` / `dev.qrify-web.com` records
-- `argocd`, `argo-rollouts`, `sealed-secrets` — platform controllers on the cluster
 
 Root `main.tf` only wires modules together. IAM that belongs to a feature stays next to that feature (e.g. API IRSA next to S3), instead of one shared `modules/iam`.
 
