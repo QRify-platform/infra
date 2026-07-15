@@ -115,17 +115,18 @@ data "kubernetes_service_v1" "nginx_ingress_lb" {
   depends_on = [null_resource.wait_for_nginx_ingress_lb]
 }
 
+resource "terraform_data" "ingress_lb_hostname" {
+  input = data.kubernetes_service_v1.nginx_ingress_lb.status[0].load_balancer[0].ingress[0].hostname
+
+  depends_on = [null_resource.wait_for_nginx_ingress_lb]
+
+  lifecycle {
+    ignore_changes = [input]
+  }
+}
+
 locals {
-  # Prefer the live LB hostname. Non-empty fallback keeps destroy plans valid when
-  # the Service is already gone (e.g. drained). AWS delete uses the record ID in
-  # state — the alias target string is only needed so the config evaluates.
-  nginx_lb_hostname = coalesce(
-    try(
-      data.kubernetes_service_v1.nginx_ingress_lb.status[0].load_balancer[0].ingress[0].hostname,
-      null
-    ),
-    "pending.elb.amazonaws.com"
-  )
+  nginx_lb_hostname = terraform_data.ingress_lb_hostname.output
 }
 
 resource "aws_route53_record" "apex" {
@@ -139,7 +140,7 @@ resource "aws_route53_record" "apex" {
     evaluate_target_health = true
   }
 
-  depends_on = [null_resource.wait_for_nginx_ingress_lb]
+  depends_on = [terraform_data.ingress_lb_hostname]
 }
 
 resource "aws_route53_record" "dev" {
@@ -153,7 +154,7 @@ resource "aws_route53_record" "dev" {
     evaluate_target_health = true
   }
 
-  depends_on = [null_resource.wait_for_nginx_ingress_lb]
+  depends_on = [terraform_data.ingress_lb_hostname]
 }
 
 resource "aws_route53_record" "portal" {
@@ -167,7 +168,7 @@ resource "aws_route53_record" "portal" {
     evaluate_target_health = true
   }
 
-  depends_on = [null_resource.wait_for_nginx_ingress_lb]
+  depends_on = [terraform_data.ingress_lb_hostname]
 }
 
 resource "aws_route53_record" "portal_dev" {
@@ -181,5 +182,5 @@ resource "aws_route53_record" "portal_dev" {
     evaluate_target_health = true
   }
 
-  depends_on = [null_resource.wait_for_nginx_ingress_lb]
+  depends_on = [terraform_data.ingress_lb_hostname]
 }

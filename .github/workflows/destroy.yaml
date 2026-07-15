@@ -18,8 +18,6 @@ jobs:
           aws-role-to-assume: ${{ vars.AWS_TF_ROLE_TO_ASSUME }}
           aws-region: us-east-2
 
-      # Route53 aliases read the ingress LB hostname from the live Service.
-      # Destroy those records BEFORE draining LBs, while the hostname still exists.
       - name: Destroy Route53 aliases while ingress LB still exists
         run: |
           terraform destroy -auto-approve \
@@ -28,7 +26,6 @@ jobs:
             -target=module.nginx_ingress.aws_route53_record.portal \
             -target=module.nginx_ingress.aws_route53_record.portal_dev
 
-      # LoadBalancer Services leave ELB ENIs that block DetachInternetGateway.
       - name: Drain LoadBalancer services before destroy
         uses: QRify-platform/github-actions/eks-drain-loadbalancers@main
         with:
