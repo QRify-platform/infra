@@ -85,9 +85,9 @@ resource "aws_subnet" "private" {
   availability_zone = each.value.az
 
   tags = {
-    Name                                  = "qrify-${each.key}"
-    "kubernetes.io/role/internal-elb"     = "1"
-    "kubernetes.io/cluster/qrify-eks"     = "owned"
+    Name                              = "qrify-${each.key}"
+    "kubernetes.io/role/internal-elb" = "1"
+    "kubernetes.io/cluster/qrify-eks" = "owned"
   }
 }
 

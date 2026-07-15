@@ -13,7 +13,7 @@ data "aws_iam_policy_document" "terraform_role_trust" {
       type = "Federated"
 
       identifiers = [
-        aws_iam_openid_connect_provider.github.arn
+        var.github_oidc_provider_arn
       ]
     }
 
@@ -422,9 +422,4 @@ resource "aws_iam_policy" "terraform" {
 resource "aws_iam_role_policy_attachment" "terraform" {
   role       = aws_iam_role.terraform.name
   policy_arn = aws_iam_policy.terraform.arn
-}
-
-output "terraform_role_arn" {
-  description = "ARN of the role assumed by GitHub Actions"
-  value       = aws_iam_role.terraform.arn
 }

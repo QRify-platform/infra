@@ -1,22 +1,23 @@
 resource "aws_s3_bucket" "qrify_storage" {
-  bucket         = var.bucket_name
-  force_destroy  = true
+  bucket        = var.bucket_name
+  force_destroy = true
 
   tags = {
-    Name        = var.bucket_name
-    Environment = "dev"
+    Name      = var.bucket_name
+    Project   = "QRify"
+    ManagedBy = "Terraform"
   }
 }
 
-# Disable block public access so we can apply a public policy to /qr_codes/*
-resource "aws_s3_bucket_public_access_block" "qrify_allow_public" {
-  bucket                  = aws_s3_bucket.qrify_storage.id
-  block_public_acls       = false
-  block_public_policy     = false
-  ignore_public_acls      = false
-  restrict_public_buckets = false
-}
+# Private bucket — API objects use IRSA + regional pre-signed URLs.
+resource "aws_s3_bucket_public_access_block" "qrify" {
+  bucket = aws_s3_bucket.qrify_storage.id
 
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
 
 resource "aws_s3_bucket_cors_configuration" "qrify_cors" {
   bucket = aws_s3_bucket.qrify_storage.id
