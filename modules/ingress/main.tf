@@ -84,6 +84,11 @@ resource "helm_release" "nginx_ingress" {
 }
 
 resource "null_resource" "wait_for_nginx_ingress_lb" {
+  triggers = {
+    release  = helm_release.nginx_ingress.id
+    wait_gen = "2"
+  }
+
   provisioner "local-exec" {
     command     = <<EOT
       echo "Starting check for NGINX Ingress LoadBalancer..."
@@ -116,7 +121,10 @@ data "kubernetes_service_v1" "nginx_ingress_lb" {
 }
 
 resource "terraform_data" "ingress_lb_hostname" {
-  input = data.kubernetes_service_v1.nginx_ingress_lb.status[0].load_balancer[0].ingress[0].hostname
+  input = try(
+    data.kubernetes_service_v1.nginx_ingress_lb.status[0].load_balancer[0].ingress[0].hostname,
+    ""
+  )
 
   depends_on = [null_resource.wait_for_nginx_ingress_lb]
 
@@ -126,7 +134,13 @@ resource "terraform_data" "ingress_lb_hostname" {
 }
 
 locals {
-  nginx_lb_hostname = terraform_data.ingress_lb_hostname.output
+  nginx_lb_hostname = coalesce(
+    try(nullif(terraform_data.ingress_lb_hostname.output, ""), null),
+    try(
+      data.kubernetes_service_v1.nginx_ingress_lb.status[0].load_balancer[0].ingress[0].hostname,
+      null
+    )
+  )
 }
 
 resource "aws_route53_record" "apex" {
