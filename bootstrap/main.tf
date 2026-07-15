@@ -19,10 +19,9 @@ module "terraform_role" {
 module "ecr_push_role" {
   source = "./modules/ecr-push-role"
 
-  github_oidc_provider_arn     = module.github_oidc.arn
-  github_organization          = var.github_organization
-  ecr_push_github_repositories = var.ecr_push_github_repositories
-  aws_region                   = var.aws_region
+  github_oidc_provider_arn = module.github_oidc.arn
+  github_organization      = var.github_organization
+  aws_region               = var.aws_region
 }
 
 module "eks_access_role" {

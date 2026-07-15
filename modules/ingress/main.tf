@@ -7,7 +7,11 @@ data "aws_elb_hosted_zone_id" "main" {}
 
 resource "aws_acm_certificate" "apex" {
   domain_name               = var.domain_name
-  subject_alternative_names = [var.dev_hostname]
+  subject_alternative_names = [
+    var.dev_hostname,
+    var.portal_hostname,
+    var.portal_dev_hostname,
+  ]
   validation_method         = "DNS"
 
   lifecycle {
@@ -135,6 +139,34 @@ resource "aws_route53_record" "apex" {
 resource "aws_route53_record" "dev" {
   zone_id = data.aws_route53_zone.main.zone_id
   name    = var.dev_hostname
+  type    = "A"
+
+  alias {
+    name                   = local.nginx_lb_hostname
+    zone_id                = data.aws_elb_hosted_zone_id.main.id
+    evaluate_target_health = true
+  }
+
+  depends_on = [null_resource.wait_for_nginx_ingress_lb]
+}
+
+resource "aws_route53_record" "portal" {
+  zone_id = data.aws_route53_zone.main.zone_id
+  name    = var.portal_hostname
+  type    = "A"
+
+  alias {
+    name                   = local.nginx_lb_hostname
+    zone_id                = data.aws_elb_hosted_zone_id.main.id
+    evaluate_target_health = true
+  }
+
+  depends_on = [null_resource.wait_for_nginx_ingress_lb]
+}
+
+resource "aws_route53_record" "portal_dev" {
+  zone_id = data.aws_route53_zone.main.zone_id
+  name    = var.portal_dev_hostname
   type    = "A"
 
   alias {

@@ -5,7 +5,9 @@ module "qrify_ecr" {
     "qrify-web-dev",
     "qrify-web-prod",
     "qrify-web-api-dev",
-    "qrify-web-api-prod"
+    "qrify-web-api-prod",
+    "qrify-portal-dev",
+    "qrify-portal-prod",
   ]
 }
 
