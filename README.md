@@ -1,26 +1,45 @@
-# 🏗️ QRify Infrastructure
+# QRify Infrastructure
 
-This repository manages the infrastructure for the QRify platform using Terraform and GitHub Actions. It currently provisions foundational cloud resources like:
+Terraform + GitHub Actions for the QRify platform. Split into:
 
-- Amazon ECR repositories for app container images
-- S3 bucket for storing generated QR codes
-- IAM roles and policies for secure access
+- **`bootstrap/`** — long-lived trust & state (S3 backend, GitHub OIDC, CI IAM roles, Route53 hosted zone)
+- **Root stack** — EKS and everything that is destroyed/rebuilt with the cluster
 
-More infrastructure components will be added incrementally as the platform evolves, including Kubernetes (EKS), Argo CD, monitoring, and more.
+## Stack (managed stack)
 
-## 🚀 Tech Stack
-- **Terraform**: Infrastructure as Code
-- **AWS**: Cloud provider
-- **GitHub Actions**: CI/CD automation
+- EKS (`qrify-eks`) + VPC / node group
+- ECR repos for web + API (dev/prod)
+- S3 app storage + IRSA for the API
+- NGINX Ingress + ACM TLS + Route53 records (`qrify-web.com`, `dev.qrify-web.com`)
+- Argo CD, Argo Rollouts, Sealed Secrets
+- (Apps + monitoring live in `cluster-state`)
+
+## Tech
+
+- Terraform (AWS / Helm / Kubernetes providers)
+- AWS (`us-east-2`)
+- GitHub Actions (OIDC → `QRifyTerraformRole`)
 
 ## Naming: bootstrap vs rebuild-platform
 
 | | **`bootstrap/`** (Terraform) | **Rebuild Platform** (workflow) |
 |---|---|---|
-| **What** | Trust + state: S3 backend, GitHub OIDC, CI IAM roles | Managed-stack DR: apply → seed images → Argo sync |
+| **What** | Trust + state: S3 backend, GitHub OIDC, CI IAM, public DNS zone | Managed-stack DR: apply → seed images → Argo sync |
 | **When** | Rarely (account/foundation changes) | After destroy / new cluster |
 | **How** | Manual `terraform apply` in `bootstrap/` | Actions → **Rebuild Platform** |
 | **Scope** | Prerequisites CI needs to exist | Does **not** recreate bootstrap |
+
+## Bootstrap modules
+
+```text
+bootstrap/modules/
+  state-bucket/     # terraform remote state
+  github-oidc/      # Actions OIDC provider
+  terraform-role/   # QRifyTerraformRole
+  ecr-push-role/    # QRifyECRPushRole
+  eks-access-role/  # QRifyEKSAccessRole
+  dns/              # qrify-web.com hosted zone
+```
 
 ## Rebuild Platform (Tier-1 DR)
 
@@ -32,4 +51,4 @@ After a fresh cluster (with bootstrap already in place), run **Actions → Rebui
 
 Required secret: `GH_DISPATCH_TOKEN` (PAT/GitHub App with `actions:write` on the service and cluster-state repos).
 
-After updating `QRifyTerraformPolicy` in `bootstrap/` (e.g. OIDC destroy perms), apply that Terraform once so destroy can delete the EKS OIDC provider.
+After updating `QRifyTerraformPolicy` in `bootstrap/`, apply bootstrap Terraform once so CI picks up the new permissions.

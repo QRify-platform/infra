@@ -7,8 +7,8 @@ resource "helm_release" "argo_rollouts" {
   create_namespace = true
   timeout          = 600
   # Helm does not uninstall CRDs; avoid hanging destroy on leftover CR instances.
-  wait             = true
-  wait_for_jobs    = false
+  wait          = true
+  wait_for_jobs = false
 
   values = [
     <<-EOT

@@ -1,6 +1,3 @@
-
-
-
 module "qrify_ecr" {
   source = "./modules/ecr"
 
@@ -12,9 +9,8 @@ module "qrify_ecr" {
   ]
 }
 
-
 module "qrify_s3" {
-  source = "./modules/s3"
+  source      = "./modules/s3"
   bucket_name = "qrify-web-platform-storage"
 }
 
@@ -25,11 +21,11 @@ module "eks" {
 module "api_irsa" {
   source = "./modules/api-irsa"
 
-  oidc_provider_arn  = module.eks.oidc_provider_arn
-  oidc_provider_url  = module.eks.oidc_provider_url
-  s3_bucket_name     = "qrify-web-platform-storage"
+  oidc_provider_arn    = module.eks.oidc_provider_arn
+  oidc_provider_url    = module.eks.oidc_provider_url
+  s3_bucket_name       = module.qrify_s3.bucket_name
   service_account_name = "qrify-web-api"
-  namespaces         = ["dev", "prod"]
+  namespaces           = ["dev", "prod"]
 
   depends_on = [module.eks, module.qrify_s3]
 }
@@ -56,13 +52,7 @@ module "argo_rollouts" {
 }
 
 module "nginx_ingress" {
-  source                = "./modules/ingress"
-  namespace             = "ingress-nginx"
-  ingress_chart_version = "4.10.0"
-  oidc_provider_arn     = module.eks.oidc_provider_arn
-  cluster_name          = module.eks.cluster_name
-  domain_name           = "qrify-web.com"
-  dev_hostname          = "dev.qrify-web.com"
+  source = "./modules/ingress"
 
   depends_on = [module.eks]
 
@@ -74,8 +64,7 @@ module "nginx_ingress" {
 }
 
 module "sealed_secrets" {
-  source = "./modules/bitnami"
-  cluster_name = module.eks.cluster_name
+  source = "./modules/sealed-secrets"
 
   depends_on = [module.eks]
 

@@ -1,3 +1,5 @@
+data "aws_caller_identity" "current" {}
+
 data "aws_iam_policy_document" "ecr_push_role_trust" {
   statement {
     sid    = "GitHubActionsAssumeRole"
@@ -11,7 +13,7 @@ data "aws_iam_policy_document" "ecr_push_role_trust" {
       type = "Federated"
 
       identifiers = [
-        aws_iam_openid_connect_provider.github.arn
+        var.github_oidc_provider_arn
       ]
     }
 
@@ -97,9 +99,4 @@ resource "aws_iam_policy" "ecr_push" {
 resource "aws_iam_role_policy_attachment" "ecr_push" {
   role       = aws_iam_role.ecr_push.name
   policy_arn = aws_iam_policy.ecr_push.arn
-}
-
-output "ecr_push_role_arn" {
-  description = "ARN of the role assumed by GitHub Actions for ECR push"
-  value       = aws_iam_role.ecr_push.arn
 }

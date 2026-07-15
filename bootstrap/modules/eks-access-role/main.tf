@@ -11,7 +11,7 @@ data "aws_iam_policy_document" "eks_access_role_trust" {
       type = "Federated"
 
       identifiers = [
-        aws_iam_openid_connect_provider.github.arn
+        var.github_oidc_provider_arn
       ]
     }
 
@@ -77,9 +77,4 @@ resource "aws_iam_policy" "eks_access" {
 resource "aws_iam_role_policy_attachment" "eks_access" {
   role       = aws_iam_role.eks_access.name
   policy_arn = aws_iam_policy.eks_access.arn
-}
-
-output "eks_access_role_arn" {
-  description = "ARN of the role assumed by GitHub Actions for EKS / Argo CD sync"
-  value       = aws_iam_role.eks_access.arn
 }
