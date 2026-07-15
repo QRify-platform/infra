@@ -1,54 +1,58 @@
 # QRify Infrastructure
 
-Terraform + GitHub Actions for the QRify platform. Split into:
+This repo is the AWS and Kubernetes *control plane* for QRify: Terraform defines the cluster and platform services, and GitHub Actions applies them via OIDC (no long-lived AWS keys in CI).
 
-- **`bootstrap/`** — long-lived trust & state (S3 backend, GitHub OIDC, CI IAM roles, Route53 hosted zone)
-- **Root stack** — EKS and everything that is destroyed/rebuilt with the cluster
+App code, Helm values, and Argo CD app definitions live elsewhere (`qrify-web`, `qrify-web-api`, `cluster-state`). This repo builds the ground those apps run on.
 
-## Stack (managed stack)
+## Two layers: bootstrap vs managed stack
 
-- EKS (`qrify-eks`) + VPC / node group
-- ECR repos for web + API (dev/prod)
-- S3 app storage + IRSA for the API
-- NGINX Ingress + ACM TLS + Route53 records (`qrify-web.com`, `dev.qrify-web.com`)
-- Argo CD, Argo Rollouts, Sealed Secrets
-- (Apps + monitoring live in `cluster-state`)
+Terraform is split on purpose so **destroy/rebuild does not wipe the foundation** that CI and DNS need.
 
-## Tech
-
-- Terraform (AWS / Helm / Kubernetes providers)
-- AWS (`us-east-2`)
-- GitHub Actions (OIDC → `QRifyTerraformRole`)
-
-## Naming: bootstrap vs rebuild-platform
-
-| | **`bootstrap/`** (Terraform) | **Rebuild Platform** (workflow) |
+| | Bootstrap (`bootstrap/`) | Managed stack (repo root) |
 |---|---|---|
-| **What** | Trust + state: S3 backend, GitHub OIDC, CI IAM, public DNS zone | Managed-stack DR: apply → seed images → Argo sync |
-| **When** | Rarely (account/foundation changes) | After destroy / new cluster |
-| **How** | Manual `terraform apply` in `bootstrap/` | Actions → **Rebuild Platform** |
-| **Scope** | Prerequisites CI needs to exist | Does **not** recreate bootstrap |
+| **Job** | Trust, remote state, CI roles, public DNS zone | EKS, ingress, certs, platform Helm charts, app storage |
+| **Lifecycle** | Rarely changed; survives cluster teardown | Applied/destroyed often for DR drills |
+| **Who applies** | You, manually in `bootstrap/` | GitHub Actions (Apply / Destroy / Rebuild Platform) |
 
-## Bootstrap modules
+**Bootstrap** holds things that must outlive the cluster:
 
-```text
-bootstrap/modules/
-  state-bucket/     # terraform remote state
-  github-oidc/      # Actions OIDC provider
-  terraform-role/   # QRifyTerraformRole
-  ecr-push-role/    # QRifyECRPushRole
-  eks-access-role/  # QRifyEKSAccessRole
-  dns/              # qrify-web.com hosted zone
-```
+- S3 bucket for Terraform state
+- GitHub OIDC provider (so Actions can assume roles)
+- CI IAM roles (`QRifyTerraformRole`, ECR push, EKS access)
+- Route53 hosted zone for `qrify-web.com` (nameservers stay stable at the registrar)
 
-## Rebuild Platform (Tier-1 DR)
+**Managed stack** holds things you are willing to recreate from scratch:
 
-After a fresh cluster (with bootstrap already in place), run **Actions → Rebuild Platform**. It:
+- VPC + EKS + node group
+- ECR repos, S3 app bucket, API IRSA
+- NGINX Ingress, ACM, DNS records pointing at the LB
+- Argo CD, Argo Rollouts, Sealed Secrets
 
-1. Runs Terraform apply (EKS + Helm stack)
-2. Triggers `release.dev` and `release.prod` for each service in `catalog/services.yaml` (prod here is DR seed only)
-3. Triggers `cluster-state` Argo sync
+If everything lived in one state file, `terraform destroy` would also delete state storage, OIDC trust, and the DNS zone — breaking CI and domain delegation on every DR run.
 
-Required secret: `GH_DISPATCH_TOKEN` (PAT/GitHub App with `actions:write` on the service and cluster-state repos).
+## Why modules (not one big file)
 
-After updating `QRifyTerraformPolicy` in `bootstrap/`, apply bootstrap Terraform once so CI picks up the new permissions.
+Modules are boundaries by concern, not a single mega-IAM dump.
+
+**Bootstrap modules** (`bootstrap/modules/`):
+
+- `state-bucket` — Terraform remote state
+- `github-oidc` — Actions → AWS trust
+- `terraform-role` — what Apply/Destroy is allowed to do
+- `ecr-push-role` / `eks-access-role` — narrower CI roles for image push and kubectl/Argo sync
+- `dns` — long-lived hosted zone only (records for the LB live in the managed stack)
+
+**Managed stack modules** (`modules/`):
+
+- `eks`, `ecr`, `s3`, `api-irsa` — cluster and app-facing AWS
+- `ingress` — NGINX + ACM + `qrify-web.com` / `dev.qrify-web.com` records
+- `argocd`, `argo-rollouts`, `sealed-secrets` — platform controllers on the cluster
+
+Root `main.tf` only wires modules together. IAM that belongs to a feature stays next to that feature (e.g. API IRSA next to S3), instead of one shared `modules/iam`.
+
+## What CI runs
+
+- **Terraform Apply / Plan / Destroy** — managed stack only
+- **Rebuild Platform** — after a destroy: apply → seed images from `catalog/services.yaml` → Argo sync (`GH_DISPATCH_TOKEN` required)
+
+Changing bootstrap (roles, zone, OIDC) means a local `terraform apply` in `bootstrap/` so CI picks up the new permissions or DNS foundation.
