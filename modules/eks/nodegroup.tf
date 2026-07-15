@@ -14,7 +14,9 @@ resource "aws_eks_node_group" "qrify_nodes" {
     min_size     = 1
   }
 
-  instance_types = ["t3.medium"]
+  # Account Free Tier restricts launches to free-tier-eligible types (t3.small).
+  # Medium failed create: InvalidParameterCombination / not Free Tier eligible.
+  instance_types = ["t3.small"]
 
   labels = {
     "qrify.io/prefix-delegation" = "true"
