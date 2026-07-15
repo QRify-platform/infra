@@ -21,6 +21,7 @@ module "ecr_push_role" {
 
   github_oidc_provider_arn = module.github_oidc.arn
   github_organization      = var.github_organization
+  github_organization_id   = var.github_organization_id
   aws_region               = var.aws_region
 }
 

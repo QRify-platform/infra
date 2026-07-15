@@ -16,6 +16,12 @@ variable "github_organization" {
   default     = "QRify-platform"
 }
 
+variable "github_organization_id" {
+  description = "Numeric GitHub organization id (OIDC sub may use repo:ORG@ID/...)."
+  type        = string
+  default     = "213210147"
+}
+
 variable "github_repository" {
   description = "GitHub repository that can assume the Terraform role."
   type        = string
