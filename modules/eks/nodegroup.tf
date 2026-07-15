@@ -14,7 +14,6 @@ resource "aws_eks_node_group" "qrify_nodes" {
     min_size     = 1
   }
 
-  # t3.small (2Gi) OOMs under Argo + Prometheus/Loki + apps; medium is the floor.
   instance_types = ["t3.medium"]
 
   labels = {
