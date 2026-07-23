@@ -3,8 +3,5 @@ terraform {
     aws = {
       source = "hashicorp/aws"
     }
-    helm = {
-      source = "hashicorp/helm"
-    }
   }
 }

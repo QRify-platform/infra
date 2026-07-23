@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Local destroy that matches CI: DNS first (while LB exists), then drain, then full destroy.
+# Local destroy: drain LBs (ExternalDNS removes app DNS as Services/Ingress go away), then full destroy.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
@@ -9,13 +9,6 @@ AWS_REGION="${AWS_REGION:-us-east-2}"
 CLUSTER_NAME="${CLUSTER_NAME:-qrify-eks}"
 
 aws eks update-kubeconfig --region "$AWS_REGION" --name "$CLUSTER_NAME" >/dev/null
-
-echo "==> Destroying ingress DNS records (LB must still exist for a clean refresh)"
-terraform destroy -auto-approve \
-  -target=module.nginx_ingress.aws_route53_record.apex \
-  -target=module.nginx_ingress.aws_route53_record.dev \
-  -target=module.nginx_ingress.aws_route53_record.portal \
-  -target=module.nginx_ingress.aws_route53_record.portal_dev
 
 echo "==> Draining LoadBalancer services"
 NAMESPACE_DIR="$(cd "$ROOT/../github-actions/eks-drain-loadbalancers" && pwd)"

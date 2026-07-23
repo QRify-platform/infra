@@ -41,3 +41,9 @@ variable "domain_name" {
   type        = string
   default     = "qrify-web.com"
 }
+
+variable "secrets_github_repository" {
+  description = "GitHub repository that can assume QRifySecretsRole (SOPS → Secrets Manager)."
+  type        = string
+  default     = "secrets-manager"
+}

@@ -43,35 +43,35 @@ module "argocd" {
   }
 }
 
-module "argo_rollouts" {
-  source = "./modules/argo-rollouts"
-
-  depends_on = [module.eks]
-
-  providers = {
-    helm = helm
-  }
-}
-
 module "nginx_ingress" {
   source = "./modules/ingress"
 
   depends_on = [module.eks]
 
   providers = {
-    aws        = aws
-    helm       = helm
-    kubernetes = kubernetes
+    aws  = aws
+    helm = helm
   }
 }
 
-module "sealed_secrets" {
-  source = "./modules/sealed-secrets"
+# IRSA only — operator Helm chart lives in cluster-state/apps-infra/external-secrets
+module "external_secrets" {
+  source = "./modules/external-secrets"
+
+  oidc_provider_arn = module.eks.oidc_provider_arn
+  oidc_provider_url = module.eks.oidc_provider_url
+  aws_region        = "us-east-2"
 
   depends_on = [module.eks]
+}
 
-  providers = {
-    helm       = helm
-    kubernetes = kubernetes
-  }
+# IRSA only — ExternalDNS Helm chart will live in cluster-state/apps-infra/external-dns
+module "external_dns" {
+  source = "./modules/external-dns"
+
+  oidc_provider_arn = module.eks.oidc_provider_arn
+  oidc_provider_url = module.eks.oidc_provider_url
+  domain_name       = "qrify-web.com"
+
+  depends_on = [module.eks]
 }

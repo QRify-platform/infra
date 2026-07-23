@@ -37,3 +37,19 @@ module "dns" {
   source      = "./modules/dns"
   domain_name = var.domain_name
 }
+
+module "secrets_kms" {
+  source = "./modules/secrets-kms"
+}
+
+module "secrets_role" {
+  source = "./modules/secrets-role"
+
+  github_oidc_provider_arn    = module.github_oidc.arn
+  github_organization         = var.github_organization
+  github_organization_id      = var.github_organization_id
+  github_repository           = var.secrets_github_repository
+  aws_region                  = var.aws_region
+  kms_key_arn                 = module.secrets_kms.key_arn
+  terraform_state_bucket_name = var.terraform_state_bucket_name
+}

@@ -10,7 +10,7 @@ Terraform is split on purpose so **destroy/rebuild does not wipe the foundation*
 
 | | Bootstrap (`bootstrap/`) | Managed stack (repo root) |
 |---|---|---|
-| **Job** | Trust, remote state, CI roles, public DNS zone | EKS, ingress, certs, platform Helm charts, app storage |
+| **Job** | Trust, remote state, CI roles, public DNS zone | EKS, ingress, certs, Argo CD bootstrap, IRSA, app storage |
 | **Lifecycle** | Rarely changed; survives cluster teardown | Applied/destroyed often for DR drills |
 | **Who applies** | You, manually in `bootstrap/` | GitHub Actions (Apply / Destroy / Rebuild Platform) |
 
@@ -18,15 +18,20 @@ Terraform is split on purpose so **destroy/rebuild does not wipe the foundation*
 
 - S3 bucket for Terraform state
 - GitHub OIDC provider (so Actions can assume roles)
-- CI IAM roles (`QRifyTerraformRole`, ECR push, EKS access)
+- CI IAM roles (`QRifyTerraformRole`, ECR push, EKS access, **QRifySecretsRole**)
+- KMS key `alias/qrify-secrets` for SOPS (secrets-manager repo)
 - Route53 hosted zone for `qrify-web.com` (nameservers stay stable at the registrar)
 
 **Managed stack** holds things you are willing to recreate from scratch:
 
 - VPC + EKS + node group
-- ECR repos, S3 app bucket, API IRSA
-- NGINX Ingress, ACM, DNS records pointing at the LB
-- Argo CD, Argo Rollouts, Sealed Secrets
+- ECR repos, S3 app bucket, API IRSA, **External Secrets IRSA**, **ExternalDNS IRSA**
+- NGINX Ingress, ACM, DNS records pointing at the LB (DNS moving to ExternalDNS next)
+- Argo CD (bootstrap only)
+
+Platform Helm addons (Rollouts, ESO, …) live in **`cluster-state/apps-infra`** via Argo CD — not Terraform `helm_release`.
+
+App secret *values* live in the separate **`secrets-manager`** repo (SOPS → Secrets Manager) and survive cluster teardown. ESO re-syncs them into stable K8s Secret names after rebuild.
 
 If everything lived in one state file, `terraform destroy` would also delete state storage, OIDC trust, and the DNS zone — breaking CI and domain delegation on every DR run.
 

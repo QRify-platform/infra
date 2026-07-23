@@ -27,3 +27,18 @@ output "route53_domain_name" {
   description = "Apex domain managed by this hosted zone."
   value       = module.dns.route53_domain_name
 }
+
+output "secrets_role_arn" {
+  description = "ARN of QRifySecretsRole for the secrets-manager repo."
+  value       = module.secrets_role.secrets_role_arn
+}
+
+output "secrets_kms_key_arn" {
+  description = "KMS key ARN for SOPS (.sops.yaml in secrets-manager)."
+  value       = module.secrets_kms.key_arn
+}
+
+output "secrets_kms_alias" {
+  description = "KMS alias for SOPS."
+  value       = module.secrets_kms.alias_name
+}
