@@ -30,9 +30,11 @@ data "aws_iam_policy_document" "secrets_role_trust" {
       test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
 
+      # Classic: repo:ORG/REPO:ref:...
+      # Immutable (new repos): repo:ORG@ORG_ID/REPO@REPO_ID:ref:...
       values = [
         "repo:${var.github_organization}/${var.github_repository}:*",
-        "repo:${var.github_organization}@${var.github_organization_id}/${var.github_repository}:*",
+        "repo:${var.github_organization}@${var.github_organization_id}/${var.github_repository}@*:*",
       ]
     }
   }
