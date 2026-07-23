@@ -133,3 +133,30 @@ resource "aws_route_table_association" "private" {
   subnet_id      = each.value.id
   route_table_id = aws_route_table.private.id
 }
+
+# ---------------------------------------------------------------------------
+# S3 gateway endpoint — private path for S3 (no NAT).
+#
+# Layers (orthogonal):
+#   • Network: this endpoint steers S3 prefix-list traffic off NAT
+#   • Auth:    IRSA (QRifyWebApiS3Role) still authorizes Put/Get/Delete
+#   • Bucket:  stays private; browsers use API pre-signed URLs
+#
+# Policy left open (Allow *) so ECR image-layer fetches (also S3) and
+# terraform state keep working via the same route. Tightening to one
+# bucket would break those.
+# ---------------------------------------------------------------------------
+data "aws_region" "current" {}
+
+resource "aws_vpc_endpoint" "s3" {
+  vpc_id            = aws_vpc.main.id
+  service_name      = "com.amazonaws.${data.aws_region.current.id}.s3"
+  vpc_endpoint_type = "Gateway"
+  route_table_ids   = [aws_route_table.private.id]
+
+  tags = {
+    Name      = "qrify-s3-gateway"
+    Project   = "QRify"
+    ManagedBy = "Terraform"
+  }
+}

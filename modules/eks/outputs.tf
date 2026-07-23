@@ -23,3 +23,8 @@ output "oidc_provider_url" {
 output "vpc_id" {
   value = aws_vpc.main.id
 }
+
+output "s3_vpc_endpoint_id" {
+  description = "Gateway VPC endpoint for S3 (private route tables)."
+  value       = aws_vpc_endpoint.s3.id
+}

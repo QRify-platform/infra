@@ -24,8 +24,8 @@ Terraform is split on purpose so **destroy/rebuild does not wipe the foundation*
 
 **Managed stack** holds things you are willing to recreate from scratch:
 
-- VPC + EKS + node group
-- ECR repos, S3 app bucket, API IRSA, **External Secrets IRSA**, **ExternalDNS IRSA**
+- VPC + EKS + node group (+ S3 gateway VPC endpoint on private RTs)
+- ECR repos, S3 app bucket (private), API IRSA, **External Secrets IRSA**, **ExternalDNS IRSA**
 - NGINX Ingress, ACM, DNS records pointing at the LB (DNS moving to ExternalDNS next)
 - Argo CD (bootstrap only)
 
