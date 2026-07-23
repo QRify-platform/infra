@@ -65,13 +65,25 @@ module "external_secrets" {
   depends_on = [module.eks]
 }
 
-# IRSA only — ExternalDNS Helm chart will live in cluster-state/apps-infra/external-dns
+# IRSA only — ExternalDNS Helm chart lives in cluster-state/apps-infra/external-dns
 module "external_dns" {
   source = "./modules/external-dns"
 
   oidc_provider_arn = module.eks.oidc_provider_arn
   oidc_provider_url = module.eks.oidc_provider_url
   domain_name       = "qrify-web.com"
+
+  depends_on = [module.eks]
+}
+
+# Private Postgres DB
+# Credentials → Secrets Manager as qrify/<env>/qrify-web-api-db (ESO → K8s).
+module "rds" {
+  source = "./modules/rds"
+
+  vpc_id                     = module.eks.vpc_id
+  private_subnet_ids         = module.eks.private_subnet_ids
+  eks_node_security_group_id = module.eks.cluster_security_group_id
 
   depends_on = [module.eks]
 }

@@ -423,3 +423,80 @@ resource "aws_iam_role_policy_attachment" "terraform" {
   role       = aws_iam_role.terraform.name
   policy_arn = aws_iam_policy.terraform.arn
 }
+
+
+data "aws_iam_policy_document" "terraform_rds_secrets" {
+  statement {
+    sid    = "ManageRDS"
+    effect = "Allow"
+
+    actions = [
+      "rds:AddTagsToResource",
+      "rds:CreateDBInstance",
+      "rds:CreateDBSubnetGroup",
+      "rds:DeleteDBInstance",
+      "rds:DeleteDBSubnetGroup",
+      "rds:Describe*",
+      "rds:ListTagsForResource",
+      "rds:ModifyDBInstance",
+      "rds:ModifyDBSubnetGroup",
+      "rds:RemoveTagsFromResource",
+      "rds:CreateDBParameterGroup",
+      "rds:DeleteDBParameterGroup",
+      "rds:ModifyDBParameterGroup",
+    ]
+
+    resources = ["*"]
+  }
+
+  statement {
+    sid    = "ManageQRifySecretsManager"
+    effect = "Allow"
+
+    actions = [
+      "secretsmanager:CreateSecret",
+      "secretsmanager:DeleteSecret",
+      "secretsmanager:DescribeSecret",
+      "secretsmanager:GetResourcePolicy",
+      "secretsmanager:GetSecretValue",
+      "secretsmanager:PutResourcePolicy",
+      "secretsmanager:PutSecretValue",
+      "secretsmanager:DeleteResourcePolicy",
+      "secretsmanager:TagResource",
+      "secretsmanager:UntagResource",
+      "secretsmanager:UpdateSecret",
+      "secretsmanager:UpdateSecretVersionStage",
+    ]
+
+    resources = [
+      "arn:aws:secretsmanager:${var.aws_region}:${data.aws_caller_identity.current.account_id}:secret:qrify/*"
+    ]
+  }
+
+  statement {
+    sid    = "ListSecretsManager"
+    effect = "Allow"
+
+    actions = [
+      "secretsmanager:ListSecrets"
+    ]
+
+    resources = ["*"]
+  }
+}
+
+resource "aws_iam_policy" "terraform_rds_secrets" {
+  name        = "QRifyTerraformRDSSecretsPolicy"
+  description = "RDS + Secrets Manager for QRify managed stack"
+  policy      = data.aws_iam_policy_document.terraform_rds_secrets.json
+
+  tags = {
+    Project   = "QRify"
+    ManagedBy = "Terraform"
+  }
+}
+
+resource "aws_iam_role_policy_attachment" "terraform_rds_secrets" {
+  role       = aws_iam_role.terraform.name
+  policy_arn = aws_iam_policy.terraform_rds_secrets.arn
+}

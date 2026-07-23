@@ -26,6 +26,7 @@ Terraform is split on purpose so **destroy/rebuild does not wipe the foundation*
 
 - VPC + EKS + node group (+ S3 gateway VPC endpoint on private RTs)
 - ECR repos, S3 app bucket (private), API IRSA, **External Secrets IRSA**, **ExternalDNS IRSA**
+- **RDS Postgres** (private, SG allows EKS nodes only); `DATABASE_URL` written to Secrets Manager
 - NGINX Ingress, ACM, DNS records pointing at the LB (DNS moving to ExternalDNS next)
 - Argo CD (bootstrap only)
 
