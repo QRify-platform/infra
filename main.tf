@@ -88,21 +88,86 @@ module "rds" {
   depends_on = [module.eks]
 }
 
-# Cognito User Pool (email + Google) + Hosted UI.
-# Google OAuth creds: secrets-manager → qrify/platform/google-auth
-# App config → Secrets Manager as qrify/<env>/qrify-cognito (ESO → K8s later).
-module "cognito" {
+# Cognito: separate user pools per environment (isolation + independent Google OAuth secrets).
+# Google OAuth: secrets-manager → qrify/<env>/google-auth (apply secrets-manager before this).
+# App config → qrify/<env>/qrify-cognito (ESO → K8s).
+#
+# Existing shared pool is moved → prod. Dev gets a new pool + domain.
+
+module "cognito_dev" {
   source = "./modules/cognito"
+
+  environment            = "dev"
+  user_pool_name         = "qrify-dev"
+  domain_prefix          = "qrify-web-dev"
+  google_oauth_secret_id = "qrify/dev/google-auth"
 
   callback_urls = [
     "http://localhost:3000/auth/callback",
     "https://dev.qrify-web.com/auth/callback",
-    "https://qrify-web.com/auth/callback",
   ]
 
   logout_urls = [
     "http://localhost:3000/",
     "https://dev.qrify-web.com/",
+  ]
+}
+
+module "cognito_prod" {
+  source = "./modules/cognito"
+
+  environment            = "prod"
+  user_pool_name         = "qrify"
+  domain_prefix          = "qrify-web"
+  google_oauth_secret_id = "qrify/prod/google-auth"
+
+  callback_urls = [
+    "https://qrify-web.com/auth/callback",
+  ]
+
+  logout_urls = [
     "https://qrify-web.com/",
   ]
 }
+
+# Preserve the previous single-pool resources as prod (avoids wiping existing users).
+moved {
+  from = module.cognito.aws_cognito_user_pool.this
+  to   = module.cognito_prod.aws_cognito_user_pool.this
+}
+
+moved {
+  from = module.cognito.aws_cognito_user_pool_client.web
+  to   = module.cognito_prod.aws_cognito_user_pool_client.web
+}
+
+moved {
+  from = module.cognito.aws_cognito_user_pool_domain.this
+  to   = module.cognito_prod.aws_cognito_user_pool_domain.this
+}
+
+moved {
+  from = module.cognito.aws_cognito_identity_provider.google
+  to   = module.cognito_prod.aws_cognito_identity_provider.google
+}
+
+moved {
+  from = module.cognito.aws_secretsmanager_secret.cognito["prod"]
+  to   = module.cognito_prod.aws_secretsmanager_secret.cognito
+}
+
+moved {
+  from = module.cognito.aws_secretsmanager_secret_version.cognito["prod"]
+  to   = module.cognito_prod.aws_secretsmanager_secret_version.cognito
+}
+
+moved {
+  from = module.cognito.aws_secretsmanager_secret.cognito["dev"]
+  to   = module.cognito_dev.aws_secretsmanager_secret.cognito
+}
+
+moved {
+  from = module.cognito.aws_secretsmanager_secret_version.cognito["dev"]
+  to   = module.cognito_dev.aws_secretsmanager_secret_version.cognito
+}
+

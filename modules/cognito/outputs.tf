@@ -14,16 +14,11 @@ output "issuer" {
   value = local.cognito_issuer
 }
 
-output "hosted_ui_login_url" {
-  description = "Base Hosted UI login URL (add client_id, redirect_uri, etc. from the web app)."
-  value       = "https://${local.cognito_domain}/login"
-}
-
 output "google_redirect_uri" {
-  description = "Put this exact URI in Google Cloud OAuth client Authorized redirect URIs."
+  description = "Put this exact URI in the Google OAuth client Authorized redirect URIs for this env."
   value       = "https://${local.cognito_domain}/oauth2/idpresponse"
 }
 
-output "secret_names" {
-  value = { for k, s in aws_secretsmanager_secret.cognito : k => s.name }
+output "secret_name" {
+  value = aws_secretsmanager_secret.cognito.name
 }

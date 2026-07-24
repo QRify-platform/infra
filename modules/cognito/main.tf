@@ -1,14 +1,8 @@
-# Cognito User Pool — QRify identity (email/password + Google via Hosted UI).
+# Cognito User Pool — QRify identity (email/password + Google).
 #
-# Google OAuth client ID/secret come from Secrets Manager
-# (secrets-manager repo → qrify/platform/google-auth), not GitHub Actions secrets.
-#
-# Pieces:
-#   1) user pool     — the user directory
-#   2) app client    — permission slip for qrify-web (public + PKCE)
-#   3) domain        — stable Hosted UI URL (also Google's redirect target)
-#   4) Google IdP    — "Sign in with Google"
-#   5) SM secret     — pool/client/domain for apps (same pattern as DATABASE_URL)
+# One module instance per environment (separate pools, domains, Google secrets).
+# Google OAuth: secrets-manager → qrify/<env>/google-auth
+# App config → Secrets Manager as qrify/<env>/qrify-cognito
 
 data "aws_secretsmanager_secret_version" "google_oauth" {
   secret_id = var.google_oauth_secret_id
@@ -19,7 +13,6 @@ locals {
   cognito_domain = "${var.domain_prefix}.auth.${var.aws_region}.amazoncognito.com"
   cognito_issuer = "https://cognito-idp.${var.aws_region}.amazonaws.com/${aws_cognito_user_pool.this.id}"
 
-  # Non-secret config apps need to start Hosted UI / verify JWTs.
   cognito_config = {
     COGNITO_REGION       = var.aws_region
     COGNITO_USER_POOL_ID = aws_cognito_user_pool.this.id
@@ -51,13 +44,14 @@ resource "aws_cognito_user_pool" "this" {
   }
 
   tags = {
-    Name      = var.user_pool_name
-    Project   = "QRify"
-    ManagedBy = "Terraform"
+    Name        = var.user_pool_name
+    Project     = "QRify"
+    ManagedBy   = "Terraform"
+    Environment = var.environment
   }
 }
 
-# Public browser client: no client secret in the frontend; OAuth code + PKCE.
+# Public browser client: no client secret; SRP for custom UI + OAuth code+PKCE for Google.
 resource "aws_cognito_user_pool_client" "web" {
   name         = "${var.user_pool_name}-web"
   user_pool_id = aws_cognito_user_pool.this.id
@@ -78,12 +72,9 @@ resource "aws_cognito_user_pool_client" "web" {
 
   prevent_user_existence_errors = "ENABLED"
 
-  # Google IdP must exist before the client can list it as a provider.
   depends_on = [aws_cognito_identity_provider.google]
 }
 
-# Fixed prefix so Google redirect URI stays stable across destroy/rebuild.
-# Full Hosted UI host: https://{domain}.auth.{region}.amazoncognito.com
 resource "aws_cognito_user_pool_domain" "this" {
   domain       = var.domain_prefix
   user_pool_id = aws_cognito_user_pool.this.id
@@ -106,24 +97,19 @@ resource "aws_cognito_identity_provider" "google" {
   }
 }
 
-# Same path style as RDS: qrify/<env>/qrify-cognito
 resource "aws_secretsmanager_secret" "cognito" {
-  for_each = toset(var.environments)
-
-  name        = "${var.secret_prefix}/${each.key}/${var.secret_name}"
-  description = "QRify ${each.key} Cognito config for web/api"
+  name        = "${var.secret_prefix}/${var.environment}/${var.secret_name}"
+  description = "QRify ${var.environment} Cognito config for web/api"
 
   tags = {
     Project     = "QRify"
     ManagedBy   = "Terraform"
-    Environment = each.key
+    Environment = var.environment
     SecretName  = var.secret_name
   }
 }
 
 resource "aws_secretsmanager_secret_version" "cognito" {
-  for_each = toset(var.environments)
-
-  secret_id     = aws_secretsmanager_secret.cognito[each.key].id
+  secret_id     = aws_secretsmanager_secret.cognito.id
   secret_string = jsonencode(local.cognito_config)
 }

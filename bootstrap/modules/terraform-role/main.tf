@@ -489,31 +489,7 @@ data "aws_iam_policy_document" "terraform_rds_secrets" {
     effect = "Allow"
 
     actions = [
-      "cognito-idp:CreateUserPool",
-      "cognito-idp:DeleteUserPool",
-      "cognito-idp:DescribeUserPool",
-      "cognito-idp:UpdateUserPool",
-      "cognito-idp:CreateUserPoolClient",
-      "cognito-idp:DeleteUserPoolClient",
-      "cognito-idp:DescribeUserPoolClient",
-      "cognito-idp:UpdateUserPoolClient",
-      "cognito-idp:CreateUserPoolDomain",
-      "cognito-idp:DeleteUserPoolDomain",
-      "cognito-idp:DescribeUserPoolDomain",
-      "cognito-idp:CreateIdentityProvider",
-      "cognito-idp:DeleteIdentityProvider",
-      "cognito-idp:DescribeIdentityProvider",
-      "cognito-idp:UpdateIdentityProvider",
-      "cognito-idp:ListUserPools",
-      "cognito-idp:ListUserPoolClients",
-      "cognito-idp:ListIdentityProviders",
-      "cognito-idp:TagResource",
-      "cognito-idp:UntagResource",
-      "cognito-idp:ListTagsForResource",
-      "cognito-idp:GetCSVHeader",
-      "cognito-idp:DescribeRiskConfiguration",
-      "cognito-idp:SetUICustomization",
-      "cognito-idp:GetUICustomization",
+      "cognito-idp:*",
     ]
 
     resources = ["*"]
