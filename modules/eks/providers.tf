@@ -1,6 +1,4 @@
-provider "aws" {
-  region = "us-east-2"
-}
+# Inherits the root AWS provider (do not nest provider "aws" here).
 
 data "aws_availability_zones" "available" {
   state = "available"

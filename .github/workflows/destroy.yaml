@@ -18,7 +18,7 @@ jobs:
           aws-role-to-assume: ${{ vars.AWS_TF_ROLE_TO_ASSUME }}
           aws-region: us-east-2
 
-      # App DNS is owned by ExternalDNS; drain LBs so ENIs release, then destroy.
+      # Drain LBs so ENIs release, then destroy.
       - name: Drain LoadBalancer services
         uses: QRify-platform/github-actions/eks-drain-loadbalancers@main
         with:

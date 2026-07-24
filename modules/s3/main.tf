@@ -1,18 +1,22 @@
 resource "aws_s3_bucket" "qrify_storage" {
-  bucket        = var.bucket_name
+  for_each = var.buckets
+
+  bucket        = each.value
   force_destroy = true
 
   tags = {
-    Name      = var.bucket_name
-    Project   = "QRify"
-    ManagedBy = "Terraform"
+    Name        = each.value
+    Project     = "QRify"
+    ManagedBy   = "Terraform"
+    Environment = each.key
   }
 }
 
 # Private bucket — API objects use IRSA + regional pre-signed URLs.
-# Resource name kept as qrify_allow_public to match existing state (avoid moved + -target clash in CI).
-resource "aws_s3_bucket_public_access_block" "qrify_allow_public" {
-  bucket = aws_s3_bucket.qrify_storage.id
+resource "aws_s3_bucket_public_access_block" "this" {
+  for_each = aws_s3_bucket.qrify_storage
+
+  bucket = each.value.id
 
   block_public_acls       = true
   block_public_policy     = true
@@ -21,7 +25,9 @@ resource "aws_s3_bucket_public_access_block" "qrify_allow_public" {
 }
 
 resource "aws_s3_bucket_cors_configuration" "qrify_cors" {
-  bucket = aws_s3_bucket.qrify_storage.id
+  for_each = aws_s3_bucket.qrify_storage
+
+  bucket = each.value.id
 
   cors_rule {
     allowed_headers = ["*"]

@@ -19,13 +19,13 @@ variable "domain_name" {
 variable "dev_hostname" {
   type        = string
   default     = "dev.qrify-web.com"
-  description = "Hostname for the /dev environment (SAN on the ACM cert + Route53 alias)."
+  description = "Hostname for the /dev environment (SAN on the ACM cert; DNS via ExternalDNS)."
 }
 
 variable "portal_hostname" {
   type        = string
   default     = "portal.qrify-web.com"
-  description = "Hostname for the internal developer portal (SAN on the ACM cert + Route53 alias)."
+  description = "Hostname for the internal developer portal (SAN on the ACM cert; DNS via ExternalDNS)."
 }
 
 variable "portal_dev_hostname" {

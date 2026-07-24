@@ -15,7 +15,7 @@ variable "eks_node_security_group_id" {
 
 variable "db_name" {
   type        = string
-  description = "Initial Postgres database name"
+  description = "Bootstrap/admin Postgres database on the instance (app DBs are qrify_<env>)"
   default     = "qrify"
 }
 
@@ -26,8 +26,8 @@ variable "db_username" {
 }
 
 variable "instance_class" {
-  type        = string
-  default     = "db.t4g.micro"
+  type    = string
+  default = "db.t4g.micro"
 }
 
 variable "secret_prefix" {
@@ -38,7 +38,7 @@ variable "secret_prefix" {
 
 variable "environments" {
   type        = list(string)
-  description = "Envs that get a DATABASE_URL secret (same DB for demo)"
+  description = "Envs that get their own Postgres database + DATABASE_URL secret"
   default     = ["dev", "prod"]
 }
 

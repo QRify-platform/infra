@@ -12,8 +12,12 @@ module "qrify_ecr" {
 }
 
 module "qrify_s3" {
-  source      = "./modules/s3"
-  bucket_name = "qrify-web-platform-storage"
+  source = "./modules/s3"
+
+  buckets = {
+    dev  = "qrify-web-platform-storage-dev"
+    prod = "qrify-web-platform-storage-prod"
+  }
 }
 
 module "eks" {
@@ -25,9 +29,8 @@ module "api_irsa" {
 
   oidc_provider_arn    = module.eks.oidc_provider_arn
   oidc_provider_url    = module.eks.oidc_provider_url
-  s3_bucket_name       = module.qrify_s3.bucket_name
+  s3_bucket_names      = module.qrify_s3.bucket_names
   service_account_name = "qrify-web-api"
-  namespaces           = ["dev", "prod"]
 
   depends_on = [module.eks, module.qrify_s3]
 }
@@ -91,8 +94,7 @@ module "rds" {
 # Cognito: separate user pools per environment (isolation + independent Google OAuth secrets).
 # Google OAuth: secrets-manager → qrify/<env>/google-auth (apply secrets-manager before this).
 # App config → qrify/<env>/qrify-cognito (ESO → K8s).
-#
-# Existing shared pool is moved → prod. Dev gets a new pool + domain.
+# Prod pool is the original shared pool; dev is a separate pool + domain.
 
 module "cognito_dev" {
   source = "./modules/cognito"
@@ -128,46 +130,5 @@ module "cognito_prod" {
   logout_urls = [
     "https://qrify-web.com/",
   ]
-}
-
-# Preserve the previous single-pool resources as prod (avoids wiping existing users).
-moved {
-  from = module.cognito.aws_cognito_user_pool.this
-  to   = module.cognito_prod.aws_cognito_user_pool.this
-}
-
-moved {
-  from = module.cognito.aws_cognito_user_pool_client.web
-  to   = module.cognito_prod.aws_cognito_user_pool_client.web
-}
-
-moved {
-  from = module.cognito.aws_cognito_user_pool_domain.this
-  to   = module.cognito_prod.aws_cognito_user_pool_domain.this
-}
-
-moved {
-  from = module.cognito.aws_cognito_identity_provider.google
-  to   = module.cognito_prod.aws_cognito_identity_provider.google
-}
-
-moved {
-  from = module.cognito.aws_secretsmanager_secret.cognito["prod"]
-  to   = module.cognito_prod.aws_secretsmanager_secret.cognito
-}
-
-moved {
-  from = module.cognito.aws_secretsmanager_secret_version.cognito["prod"]
-  to   = module.cognito_prod.aws_secretsmanager_secret_version.cognito
-}
-
-moved {
-  from = module.cognito.aws_secretsmanager_secret.cognito["dev"]
-  to   = module.cognito_dev.aws_secretsmanager_secret.cognito
-}
-
-moved {
-  from = module.cognito.aws_secretsmanager_secret_version.cognito["dev"]
-  to   = module.cognito_dev.aws_secretsmanager_secret_version.cognito
 }
 

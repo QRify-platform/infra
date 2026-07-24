@@ -25,10 +25,10 @@ Terraform is split on purpose so **destroy/rebuild does not wipe the foundation*
 **Managed stack** holds things you are willing to recreate from scratch:
 
 - VPC + EKS + node group (+ S3 gateway VPC endpoint on private RTs)
-- ECR repos, S3 app bucket (private), API IRSA, **External Secrets IRSA**, **ExternalDNS IRSA**
-- **RDS Postgres** (private, SG allows EKS nodes only); `DATABASE_URL` written to Secrets Manager
+- ECR repos, **S3 app buckets per env** (private), API IRSA per env, **External Secrets IRSA**, **ExternalDNS IRSA**
+- **RDS Postgres** (private, one instance; **databases** `qrify_dev` / `qrify_prod`); per-env `DATABASE_URL` in Secrets Manager
 - **Cognito** — separate User Pools for **dev** and **prod** (email/password + Google; custom app UI, not Hosted UI). Google OAuth secrets: `qrify/<env>/google-auth`. Pool config: `qrify/<env>/qrify-cognito`.
-- NGINX Ingress, ACM, DNS records pointing at the LB (DNS moving to ExternalDNS next)
+- NGINX Ingress + ACM (SANs); DNS aliases via **ExternalDNS**
 - Argo CD (bootstrap only)
 
 Platform Helm addons (Rollouts, ESO, …) live in **`cluster-state/apps-infra`** via Argo CD — not Terraform `helm_release`.

@@ -1,5 +1,5 @@
 resource "aws_eks_node_group" "qrify_nodes" {
-  cluster_name    = aws_eks_cluster.qrify.name
+  cluster_name = aws_eks_cluster.qrify.name
   # Renamed so create_before_destroy can roll from t3.small → m7i-flex.large safely.
   node_group_name = "qrify-nodes-m7i"
   node_role_arn   = aws_iam_role.eks_nodes.arn

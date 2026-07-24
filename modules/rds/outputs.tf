@@ -7,7 +7,23 @@ output "db_instance_address" {
 }
 
 output "db_name" {
-  value = aws_db_instance.this.db_name
+  description = "Bootstrap/admin database name on the instance"
+  value       = aws_db_instance.this.db_name
+}
+
+output "app_database_names" {
+  description = "Map of environment => application database name"
+  value       = local.app_databases
+}
+
+output "master_username" {
+  value = var.db_username
+}
+
+output "master_password" {
+  description = "Master password (also embedded in per-env DATABASE_URL secrets)"
+  value       = random_password.master.result
+  sensitive   = true
 }
 
 output "security_group_id" {
