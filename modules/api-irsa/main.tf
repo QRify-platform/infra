@@ -2,7 +2,6 @@ locals {
   oidc_host = replace(var.oidc_provider_url, "https://", "")
 }
 
-# One IRSA role per env so the prod API cannot touch the dev bucket (and vice versa).
 data "aws_iam_policy_document" "assume_role" {
   for_each = var.s3_bucket_names
 
