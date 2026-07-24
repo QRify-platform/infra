@@ -91,10 +91,7 @@ module "rds" {
   depends_on = [module.eks]
 }
 
-# Cognito: separate user pools per environment (isolation + independent Google OAuth secrets).
-# Google OAuth: secrets-manager → qrify/<env>/google-auth (apply secrets-manager before this).
-# App config → qrify/<env>/qrify-cognito (ESO → K8s).
-# Prod pool is the original shared pool; dev is a separate pool + domain.
+# Cognito user pools (dev / prod).
 
 module "cognito_dev" {
   source = "./modules/cognito"

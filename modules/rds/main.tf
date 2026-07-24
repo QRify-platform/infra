@@ -77,14 +77,10 @@ resource "aws_db_instance" "this" {
 }
 
 locals {
-  # One Postgres *database* per env on the shared instance (isolation without 2x RDS cost).
-  # Initial aws_db_instance.db_name ("qrify") is only for admin/bootstrap connections;
-  # app DBs qrify_dev / qrify_prod are created by kubernetes_job.rds_create_databases (private VPC).
   app_databases = {
     for env in var.environments : env => "qrify_${env}"
   }
 
-  # urlencode password so special chars are safe in DATABASE_URL
   database_urls = {
     for env, db_name in local.app_databases :
     env => format(

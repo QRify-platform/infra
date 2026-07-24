@@ -1,5 +1,4 @@
-# Create per-env Postgres databases on the shared private RDS instance.
-# Runs in-cluster (only EKS nodes can reach RDS). Idempotent CREATE DATABASE.
+# Create qrify_dev / qrify_prod on the shared RDS instance.
 resource "kubernetes_job_v1" "rds_create_databases" {
   metadata {
     name      = "rds-create-app-databases"
