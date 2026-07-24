@@ -25,9 +25,16 @@ jobs:
           aws-role-to-assume: ${{ vars.AWS_TF_ROLE_TO_ASSUME }}
           aws-region: us-east-2
 
-      # Pass 1: cluster must exist before Helm/Kubernetes providers can auth
+      # Pass 1: cluster must exist before Helm/Kubernetes providers can auth.
+      # Cognito is included because pending `moved` blocks (module.cognito →
+      # cognito_dev/prod) cannot be excluded by -target or the plan fails.
       - name: Terraform Apply (EKS)
-        run: terraform apply -target=module.eks -auto-approve
+        run: |
+          terraform apply \
+            -target=module.eks \
+            -target=module.cognito_dev \
+            -target=module.cognito_prod \
+            -auto-approve
 
       # Pass 2: Helm charts and remaining resources
       - name: Terraform Apply (full stack)
