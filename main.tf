@@ -46,6 +46,17 @@ module "argocd" {
   }
 }
 
+# K8s RBAC for QRifyEKSAccessRole (bootstrap IAM + modules/eks access entry).
+module "eks_access_rbac" {
+  source = "./modules/eks-access-rbac"
+
+  depends_on = [module.argocd]
+
+  providers = {
+    kubernetes = kubernetes
+  }
+}
+
 module "nginx_ingress" {
   source = "./modules/ingress"
 

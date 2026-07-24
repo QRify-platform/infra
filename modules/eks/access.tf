@@ -10,7 +10,7 @@ data "aws_iam_role" "eks_access" {
 }
 
 # cluster-state CI: map the role into a Kubernetes group. Permissions come from
-# RBAC in eks_access_rbac.tf (argocd namespace only) — not EKS cluster-admin.
+# module.eks_access_rbac (argocd namespace only) — not EKS cluster-admin.
 resource "aws_eks_access_entry" "eks_access" {
   cluster_name      = aws_eks_cluster.qrify.name
   principal_arn     = data.aws_iam_role.eks_access.arn

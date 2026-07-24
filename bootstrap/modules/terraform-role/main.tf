@@ -1,5 +1,8 @@
 data "aws_caller_identity" "current" {}
 
+# -----------------------------------------------------------------------------
+# Trust — GitHub Actions OIDC can assume this role
+# -----------------------------------------------------------------------------
 data "aws_iam_policy_document" "terraform_role_trust" {
   statement {
     sid    = "GitHubActionsAssumeRole"
@@ -50,6 +53,9 @@ resource "aws_iam_role" "terraform" {
   }
 }
 
+# -----------------------------------------------------------------------------
+# Platform policy — VPC, EKS, ECR, S3, LB, DNS, IAM (size-limited; see data policy below)
+# -----------------------------------------------------------------------------
 data "aws_iam_policy_document" "terraform_permissions" {
   statement {
     sid    = "ManageNetworking"
@@ -424,7 +430,9 @@ resource "aws_iam_role_policy_attachment" "terraform" {
   policy_arn = aws_iam_policy.terraform.arn
 }
 
-
+# -----------------------------------------------------------------------------
+# Data policy — RDS, Secrets Manager, Cognito (2nd policy: IAM 6KB size limit)
+# -----------------------------------------------------------------------------
 data "aws_iam_policy_document" "terraform_rds_secrets" {
   statement {
     sid    = "ManageRDS"

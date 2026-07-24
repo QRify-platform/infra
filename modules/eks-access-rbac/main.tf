@@ -1,5 +1,6 @@
 # Least-privilege RBAC for cluster-state CI (group qrify-eks-access).
 # Scoped to the argocd namespace: manage Application CRs and read status.
+# IAM half lives in bootstrap (QRifyEKSAccessRole); EKS access entry in modules/eks.
 
 resource "kubernetes_role_v1" "eks_access_argocd" {
   metadata {
@@ -24,8 +25,6 @@ resource "kubernetes_role_v1" "eks_access_argocd" {
     resources  = ["pods"]
     verbs      = ["get", "list", "watch"]
   }
-
-  depends_on = [module.argocd]
 }
 
 resource "kubernetes_role_binding_v1" "eks_access_argocd" {
@@ -45,6 +44,4 @@ resource "kubernetes_role_binding_v1" "eks_access_argocd" {
     name      = "qrify-eks-access"
     api_group = "rbac.authorization.k8s.io"
   }
-
-  depends_on = [module.argocd]
 }
