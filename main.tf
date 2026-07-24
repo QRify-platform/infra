@@ -87,3 +87,22 @@ module "rds" {
 
   depends_on = [module.eks]
 }
+
+# Cognito User Pool (email + Google) + Hosted UI.
+# Google OAuth creds: secrets-manager → qrify/platform/google-auth
+# App config → Secrets Manager as qrify/<env>/qrify-cognito (ESO → K8s later).
+module "cognito" {
+  source = "./modules/cognito"
+
+  callback_urls = [
+    "http://localhost:3000/auth/callback",
+    "https://dev.qrify-web.com/auth/callback",
+    "https://qrify-web.com/auth/callback",
+  ]
+
+  logout_urls = [
+    "http://localhost:3000/",
+    "https://dev.qrify-web.com/",
+    "https://qrify-web.com/",
+  ]
+}
