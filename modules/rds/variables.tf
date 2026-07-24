@@ -15,7 +15,7 @@ variable "eks_node_security_group_id" {
 
 variable "db_name" {
   type        = string
-  description = "Bootstrap/admin Postgres database on the instance (app DBs are qrify_<env>)"
+  description = "Postgres database name created on each instance"
   default     = "qrify"
 }
 
@@ -38,7 +38,7 @@ variable "secret_prefix" {
 
 variable "environments" {
   type        = list(string)
-  description = "Envs that get their own Postgres database + DATABASE_URL secret"
+  description = "Envs that each get their own RDS instance + DATABASE_URL secret"
   default     = ["dev", "prod"]
 }
 

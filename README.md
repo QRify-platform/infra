@@ -26,7 +26,7 @@ Terraform is split on purpose so **destroy/rebuild does not wipe the foundation*
 
 - VPC + EKS + node group (+ S3 gateway VPC endpoint on private RTs)
 - ECR repos, **S3 app buckets per env** (private), API IRSA per env, **External Secrets IRSA**, **ExternalDNS IRSA**
-- **RDS Postgres** (private, one instance; **databases** `qrify_dev` / `qrify_prod`); per-env `DATABASE_URL` in Secrets Manager
+- **RDS Postgres** (private, one instance per env: `qrify-postgres-dev` / `qrify-postgres-prod`); per-env `DATABASE_URL` in Secrets Manager
 - **Cognito** — separate User Pools for **dev** and **prod** (email/password + Google; custom app UI, not Hosted UI). Google OAuth secrets: `qrify/<env>/google-auth`. Pool config: `qrify/<env>/qrify-cognito`.
 - NGINX Ingress + ACM (SANs); DNS aliases via **ExternalDNS**
 - Argo CD (bootstrap only)

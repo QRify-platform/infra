@@ -90,7 +90,7 @@ module "external_dns" {
   depends_on = [module.eks]
 }
 
-# Private Postgres DB
+# Private Postgres — one RDS instance per env (dev/prod).
 # Credentials → Secrets Manager as qrify/<env>/qrify-web-api-db (ESO → K8s).
 module "rds" {
   source = "./modules/rds"

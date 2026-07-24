@@ -1,4 +1,6 @@
 resource "random_password" "master" {
+  for_each = toset(var.environments)
+
   length  = 32
   special = true
   # Avoid URL/Shell pain in DATABASE_URL
@@ -45,7 +47,9 @@ resource "aws_vpc_security_group_egress_rule" "rds_all" {
 }
 
 resource "aws_db_instance" "this" {
-  identifier     = "qrify-postgres"
+  for_each = toset(var.environments)
+
+  identifier     = "qrify-postgres-${each.key}"
   engine         = "postgres"
   engine_version = "16"
 
@@ -57,7 +61,7 @@ resource "aws_db_instance" "this" {
 
   db_name  = var.db_name
   username = var.db_username
-  password = random_password.master.result
+  password = random_password.master[each.key].result
 
   db_subnet_group_name   = aws_db_subnet_group.this.name
   vpc_security_group_ids = [aws_security_group.rds.id]
@@ -70,26 +74,23 @@ resource "aws_db_instance" "this" {
   apply_immediately       = true
 
   tags = {
-    Name      = "qrify-postgres"
-    Project   = "QRify"
-    ManagedBy = "Terraform"
+    Name        = "qrify-postgres-${each.key}"
+    Project     = "QRify"
+    ManagedBy   = "Terraform"
+    Environment = each.key
   }
 }
 
 locals {
-  app_databases = {
-    for env in var.environments : env => "qrify_${env}"
-  }
-
   database_urls = {
-    for env, db_name in local.app_databases :
+    for env in var.environments :
     env => format(
       "postgresql://%s:%s@%s:%d/%s",
       var.db_username,
-      urlencode(random_password.master.result),
-      aws_db_instance.this.address,
-      aws_db_instance.this.port,
-      db_name,
+      urlencode(random_password.master[env].result),
+      aws_db_instance.this[env].address,
+      aws_db_instance.this[env].port,
+      var.db_name,
     )
   }
 }
@@ -98,7 +99,7 @@ resource "aws_secretsmanager_secret" "database_url" {
   for_each = toset(var.environments)
 
   name                    = "${var.secret_prefix}/${each.key}/${var.secret_name}"
-  description             = "QRify ${each.key} API DATABASE_URL (RDS db qrify_${each.key})"
+  description             = "QRify ${each.key} API DATABASE_URL (RDS qrify-postgres-${each.key})"
   recovery_window_in_days = 0
 
   tags = {
