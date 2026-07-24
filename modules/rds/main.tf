@@ -97,8 +97,9 @@ locals {
 resource "aws_secretsmanager_secret" "database_url" {
   for_each = toset(var.environments)
 
-  name        = "${var.secret_prefix}/${each.key}/${var.secret_name}"
-  description = "QRify ${each.key} API DATABASE_URL (RDS db qrify_${each.key})"
+  name                    = "${var.secret_prefix}/${each.key}/${var.secret_name}"
+  description             = "QRify ${each.key} API DATABASE_URL (RDS db qrify_${each.key})"
+  recovery_window_in_days = 0
 
   tags = {
     Project     = "QRify"

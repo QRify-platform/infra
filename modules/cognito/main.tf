@@ -98,8 +98,9 @@ resource "aws_cognito_identity_provider" "google" {
 }
 
 resource "aws_secretsmanager_secret" "cognito" {
-  name        = "${var.secret_prefix}/${var.environment}/${var.secret_name}"
-  description = "QRify ${var.environment} Cognito config for web/api"
+  name                    = "${var.secret_prefix}/${var.environment}/${var.secret_name}"
+  description             = "QRify ${var.environment} Cognito config for web/api"
+  recovery_window_in_days = 0
 
   tags = {
     Project     = "QRify"

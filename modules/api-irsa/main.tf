@@ -33,7 +33,7 @@ resource "aws_iam_role" "api" {
   for_each = var.s3_bucket_names
 
   name               = "QRifyWebApiS3Role-${each.key}"
-  description        = "IRSA for qrify-web-api in ${each.key} → S3 ${each.value}"
+  description        = "IRSA for qrify-web-api in ${each.key} to S3 ${each.value}"
   assume_role_policy = data.aws_iam_policy_document.assume_role[each.key].json
 
   tags = {
