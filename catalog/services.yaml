@@ -1,6 +1,7 @@
 # CI seed targets for Rebuild Platform — repos that build/push images.
 # Not the full Argo inventory (see cluster-state); only services with release workflows.
-# Rebuild seeds with promote_prod=false (dev only). Day-to-day push still gates prod.
+# Day-to-day prod promotion still goes through release.yaml's production environment gate.
+# Rebuild waits for deploy-dev only; promote-prod can be approved later on the same tag.
 services:
   - repo: QRify-platform/qrify-web
     workflows:
