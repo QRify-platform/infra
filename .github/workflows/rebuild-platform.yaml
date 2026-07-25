@@ -68,12 +68,15 @@ jobs:
       matrix:
         service: ${{ fromJson(needs.catalog.outputs.services) }}
     steps:
+      # Dev seed only — skip promote-prod so we don't wait on production approval.
       - name: Trigger ${{ matrix.service.repo }} / ${{ matrix.service.workflow }}
         uses: QRify-platform/github-actions/dispatch-and-wait@main
         with:
           repository: ${{ matrix.service.repo }}
           workflow: ${{ matrix.service.workflow }}
           github-token: ${{ secrets.GH_DISPATCH_TOKEN }}
+          fields: |
+            promote_prod=false
 
   argo-sync:
     needs: [catalog, seed-releases]
