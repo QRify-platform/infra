@@ -1,19 +1,16 @@
 # CI seed targets for Rebuild Platform — repos that build/push images.
 # Not the full Argo inventory (see cluster-state); only services with release workflows.
-# Prod workflows here are DR seed only — day-to-day prod stays manual (workflow_dispatch).
+# Day-to-day prod promotion still goes through release.yaml's production environment gate.
 services:
   - repo: QRify-platform/qrify-web
     workflows:
-      - release.dev.yaml
-      - release.prod.yaml
+      - release.yaml
   - repo: QRify-platform/qrify-web-api
     workflows:
-      - release.dev.yaml
-      - release.prod.yaml
+      - release.yaml
   - repo: QRify-platform/qrify-portal
     workflows:
-      - release.dev.yaml
-      - release.prod.yaml
+      - release.yaml
 
 argo_sync:
   repo: QRify-platform/cluster-state
