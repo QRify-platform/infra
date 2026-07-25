@@ -106,13 +106,10 @@ data "aws_iam_policy_document" "secrets_permissions" {
   }
 
   statement {
-    sid    = "TerraformState"
+    sid    = "TerraformStateListBucket"
     effect = "Allow"
 
     actions = [
-      "s3:GetObject",
-      "s3:PutObject",
-      "s3:DeleteObject",
       "s3:ListBucket",
       "s3:GetBucketVersioning",
       "s3:GetEncryptionConfiguration",
@@ -120,7 +117,22 @@ data "aws_iam_policy_document" "secrets_permissions" {
 
     resources = [
       "arn:aws:s3:::${var.terraform_state_bucket_name}",
-      "arn:aws:s3:::${var.terraform_state_bucket_name}/*",
+    ]
+  }
+
+  statement {
+    sid    = "TerraformStateSecretsManagerPrefix"
+    effect = "Allow"
+
+    actions = [
+      "s3:GetObject",
+      "s3:PutObject",
+      "s3:DeleteObject",
+      "s3:GetObjectVersion",
+    ]
+
+    resources = [
+      "arn:aws:s3:::${var.terraform_state_bucket_name}/secrets-manager/*",
     ]
   }
 }

@@ -502,6 +502,24 @@ data "aws_iam_policy_document" "terraform_rds_secrets" {
 
     resources = ["*"]
   }
+
+  # Overrides ManageQRifyS3Objects Allow on qrify-*/* for this prefix.
+  statement {
+    sid    = "DenySecretsManagerTerraformState"
+    effect = "Deny"
+
+    actions = [
+      "s3:GetObject",
+      "s3:GetObjectVersion",
+      "s3:PutObject",
+      "s3:DeleteObject",
+      "s3:DeleteObjectVersion",
+    ]
+
+    resources = [
+      "arn:aws:s3:::qrify-terraform-state/secrets-manager/*",
+    ]
+  }
 }
 
 resource "aws_iam_policy" "terraform_rds_secrets" {
