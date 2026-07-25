@@ -10,6 +10,14 @@ output "dev_hostname" {
   value = var.dev_hostname
 }
 
+output "api_hostname" {
+  value = var.api_hostname
+}
+
+output "api_dev_hostname" {
+  value = var.api_dev_hostname
+}
+
 output "portal_hostname" {
   value = var.portal_hostname
 }

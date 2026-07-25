@@ -7,6 +7,8 @@ resource "aws_acm_certificate" "apex" {
   domain_name = var.domain_name
   subject_alternative_names = [
     var.dev_hostname,
+    var.api_hostname,
+    var.api_dev_hostname,
     var.portal_hostname,
     var.portal_dev_hostname,
   ]
@@ -45,7 +47,7 @@ resource "aws_acm_certificate_validation" "apex" {
   validation_record_fqdns = [for record in aws_route53_record.acm_validation : record.fqdn]
 }
 
-# App hostnames (qrify-web.com, dev.*, portal.*) are managed by ExternalDNS
+# App hostnames (qrify-web.com, api.*, dev.*, portal.*) are managed by ExternalDNS
 # from Ingress resources — not Terraform Route53 aliases.
 resource "helm_release" "nginx_ingress" {
   name             = "nginx-ingress-controller"

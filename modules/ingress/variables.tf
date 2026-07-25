@@ -22,6 +22,18 @@ variable "dev_hostname" {
   description = "Hostname for the /dev environment (SAN on the ACM cert; DNS via ExternalDNS)."
 }
 
+variable "api_hostname" {
+  type        = string
+  default     = "api.qrify-web.com"
+  description = "Hostname for the prod API (SAN on the ACM cert; DNS via ExternalDNS)."
+}
+
+variable "api_dev_hostname" {
+  type        = string
+  default     = "api.dev.qrify-web.com"
+  description = "Hostname for the /dev API (SAN on the ACM cert; DNS via ExternalDNS)."
+}
+
 variable "portal_hostname" {
   type        = string
   default     = "portal.qrify-web.com"
