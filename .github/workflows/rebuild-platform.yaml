@@ -70,7 +70,7 @@ jobs:
     steps:
       # Full release (promote stays on production approval). Only wait for deploy-dev.
       - name: Trigger ${{ matrix.service.repo }} / ${{ matrix.service.workflow }}
-        uses: QRify-platform/github-actions/dispatch-and-wait@main
+        uses: QRify-platform/github-actions/dispatch-and-wait@v1.0.0
         with:
           repository: ${{ matrix.service.repo }}
           workflow: ${{ matrix.service.workflow }}
@@ -83,7 +83,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Trigger Argo CD sync
-        uses: QRify-platform/github-actions/dispatch-and-wait@main
+        uses: QRify-platform/github-actions/dispatch-and-wait@v1.0.0
         with:
           repository: ${{ needs.catalog.outputs.argo_repo }}
           workflow: ${{ needs.catalog.outputs.argo_workflow }}
