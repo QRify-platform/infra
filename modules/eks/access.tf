@@ -17,3 +17,27 @@ resource "aws_eks_access_entry" "eks_access" {
   type              = "STANDARD"
   kubernetes_groups = ["qrify-eks-access"]
 }
+
+# Local IAM users (e.g. admin) — AWS console "AdministratorAccess" is NOT
+# enough for kubectl; EKS needs an access entry + policy.
+resource "aws_eks_access_entry" "human_admins" {
+  for_each = toset(var.human_admin_principal_arns)
+
+  cluster_name  = aws_eks_cluster.qrify.name
+  principal_arn = each.value
+  type          = "STANDARD"
+}
+
+resource "aws_eks_access_policy_association" "human_admins" {
+  for_each = toset(var.human_admin_principal_arns)
+
+  cluster_name  = aws_eks_cluster.qrify.name
+  principal_arn = each.value
+  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+
+  access_scope {
+    type = "cluster"
+  }
+
+  depends_on = [aws_eks_access_entry.human_admins]
+}

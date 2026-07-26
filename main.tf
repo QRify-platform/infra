@@ -22,6 +22,11 @@ module "qrify_s3" {
 
 module "eks" {
   source = "./modules/eks"
+
+  # IAM AdministratorAccess ≠ kubectl access; map console admins explicitly.
+  human_admin_principal_arns = [
+    "arn:aws:iam::856096729725:user/admin",
+  ]
 }
 
 module "api_irsa" {
